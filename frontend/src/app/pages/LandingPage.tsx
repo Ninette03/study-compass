@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Search, ShieldCheck, ArrowRight, Star, Zap, CheckCircle } from 'lucide-react';
-import { TagPill } from '../components/shared/TagPill';
+import { TagPill } from '../components/shared/TagPill (1).tsx';
 import { SentimentSummaryLabel } from '../components/shared/SentimentBadge';
-import { AvatarCircle } from '../components/shared/AvatarCircle';
-import { questions, siteStats } from '../data/mockData';
-import { useApp } from '../context/AppContext';
+import { AvatarCircle } from '../components/shared/AvatarCircle (1).tsx';
+import { questions, siteStats } from '../data/mockData.ts';
+import { useApp } from '../context/AppContext.tsx';
 
 export default function LandingPage() {
   const { isAuthenticated } = useApp();
@@ -103,7 +103,7 @@ export default function LandingPage() {
             ].map(item => (
               <div key={item.step} className="text-center">
                 <div className="w-12 h-12 rounded-full flex items-center justify-center text-xl mx-auto mb-4" style={{ backgroundColor: '#EEEDFE' }}>
-                  {item.icon}
+                  
                 </div>
                 <h3 className="mb-2" style={{ fontSize: '15px', fontWeight: 500, color: '#1A1A1A' }}>{item.title}</h3>
                 <p className="text-[13px]" style={{ color: '#5F5E5A' }}>{item.desc}</p>

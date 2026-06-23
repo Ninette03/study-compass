@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Bell, Menu, X, BookOpen, ChevronDown } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { AvatarCircle } from './AvatarCircle';
+import { AvatarCircle } from './AvatarCircle (1).tsx';
 import { notifications } from '../../data/mockData';
 
 export function Navbar() {

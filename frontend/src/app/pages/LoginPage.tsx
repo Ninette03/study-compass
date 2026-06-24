@@ -4,7 +4,7 @@ import { Eye, EyeOff, BookOpen, Loader2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function LoginPage() {
-  const { login } = useApp();
+  const { loginWithCredentials } = useApp();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,22 +16,15 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    await new Promise(r => setTimeout(r, 800));
 
-    // Demo: any email/password combo works
-    if (email.includes('admin')) {
-      login('admin');
-      navigate('/admin');
-    } else if (email.includes('advisor')) {
-      login('advisor');
+    try {
+      await loginWithCredentials({ email, password });
       navigate('/dashboard');
-    } else if (email) {
-      login('student');
-      navigate('/dashboard');
-    } else {
-      setError('Incorrect email or password.');
+    } catch (err: any) {
+      setError(err?.response?.data?.message || err?.message || 'Incorrect email or password.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -101,9 +94,6 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-4 p-3 rounded-lg text-[12px]" style={{ backgroundColor: '#EEEDFE', color: '#5F5E5A' }}>
-          <strong>Demo:</strong> Enter any email/password. Use "advisor@" for advisor role or "admin@" for admin role.
-        </div>
       </div>
 
       <p className="mt-5 text-[13px]" style={{ color: '#5F5E5A' }}>

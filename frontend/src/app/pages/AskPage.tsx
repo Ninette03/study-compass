@@ -4,6 +4,7 @@ import { Loader2, Search } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { TagPill } from '../components/shared/TagPill (1).tsx';
 import { institutions, questions, allTags } from '../data/mockData';
+import { questionApi } from '../api';
 import { toast } from 'sonner';
 
 export default function AskPage() {
@@ -38,9 +39,24 @@ export default function AskPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    await new Promise(r => setTimeout(r, 1000));
-    toast.success('Question posted — we\'ve notified relevant advisors.');
-    navigate('/questions/1');
+
+    try {
+      const response = await questionApi.createQuestion({
+        title,
+        body,
+        institutionId: institution,
+        programme: programme || undefined,
+        tags,
+      });
+
+      toast.success('Question posted — we\'ve notified relevant advisors.');
+      const questionId = response.data.data.id;
+      navigate(`/questions/${questionId}`);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Unable to post question.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const canSubmit = title.trim() && institution && tags.length >= 1;

@@ -1,15 +1,34 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { TagPill } from '../components/shared/TagPill (1).tsx';
 import { SentimentBadge, SentimentSummaryLabel } from '../components/shared/SentimentBadge';
 import { AvatarCircle } from '../components/shared/AvatarCircle (1).tsx';
 import { EmptyState } from '../components/shared/EmptyState (1).tsx';
-import { questions, institutions, allTags, SentimentType } from '../data/mockData';
+import { institutions, allTags, SentimentType } from '../data/mockData';
+import { questionApi } from '../api';
 
 const PAGE_SIZE = 20;
 
-function QuestionCard({ q }: { q: typeof questions[0] }) {
+interface Question {
+  id: string;
+  title: string;
+  body: string;
+  institutionId: string;
+  institution?: { name: string };
+  programme: string | null;
+  tags: Array<{ name: string }>;
+  user?: { fullName: string };
+  responses?: any[];
+  createdAt?: string;
+}
+
+function QuestionCard({ q }: { q: Question }) {
+  const institutionName = q.institution?.name || 'Unknown Institution';
+  const responseCount = q.responses?.length ?? 0;
+  const askerName = q.user?.fullName ?? 'Anonymous';
+  const timeAgo = q.createdAt ? new Date(q.createdAt).toLocaleDateString() : 'Recently';
+
   return (
     <Link
       to={`/questions/${q.id}`}
@@ -23,12 +42,12 @@ function QuestionCard({ q }: { q: typeof questions[0] }) {
             {q.body.slice(0, 100)}{q.body.length > 100 ? '…' : ''}
           </p>
           <div className="flex flex-wrap items-center gap-2">
-            <TagPill label={q.institutionName} interactive />
-            {q.tags.slice(0, 4).map(t => <TagPill key={t} label={t} />)}
+            <TagPill label={institutionName} interactive />
+            {q.tags.slice(0, 4).map((t, i) => <TagPill key={i} label={t.name} />)}
             {q.tags.length > 4 && <span className="text-[12px]" style={{ color: '#888780' }}>+{q.tags.length - 4} more</span>}
           </div>
         </div>
-        {q.isAnswered && (
+        {responseCount > 0 && (
           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] flex-shrink-0" style={{ backgroundColor: '#E1F5EE', color: '#0F6E56' }}>
             Answered
           </span>
@@ -36,14 +55,13 @@ function QuestionCard({ q }: { q: typeof questions[0] }) {
       </div>
       <div className="flex items-center justify-between mt-3">
         <div className="flex items-center gap-3">
-          <AvatarCircle name={q.askerName} size="sm" />
-          <span className="text-[12px]" style={{ color: '#5F5E5A' }}>Asked by {q.askerName} · {q.timeAgo}</span>
+          <AvatarCircle name={askerName} size="sm" />
+          <span className="text-[12px]" style={{ color: '#5F5E5A' }}>Asked by {askerName} · {timeAgo}</span>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-[12px]" style={{ color: '#888780' }}>
-            {q.responseCount > 0 ? `${q.responseCount} responses` : 'No responses yet'}
+            {responseCount > 0 ? `${responseCount} responses` : 'No responses yet'}
           </span>
-          <SentimentSummaryLabel sentiment={q.sentiment} />
         </div>
       </div>
     </Link>
@@ -59,17 +77,38 @@ export default function BrowseQuestionsPage() {
   const [sortOrder, setSortOrder] = useState('Most recent');
   const [page, setPage] = useState(1);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        setLoading(true);
+        const response = await questionApi.getQuestions({
+          title: search || undefined,
+          institutionId: selectedInstitutions.length === 1 ? selectedInstitutions[0] : undefined,
+        });
+        setQuestions(response.data.data.questions || []);
+        setError(null);
+      } catch (err: any) {
+        setError(err?.response?.data?.message || 'Failed to fetch questions');
+        setQuestions([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchQuestions();
+  }, [search, selectedInstitutions]);
 
   const filtered = useMemo(() => {
     let result = [...questions];
-    if (search) result = result.filter(q => q.title.toLowerCase().includes(search.toLowerCase()) || q.body.toLowerCase().includes(search.toLowerCase()));
-    if (selectedInstitutions.length) result = result.filter(q => selectedInstitutions.includes(q.institutionId));
-    if (selectedTags.length) result = result.filter(q => q.tags.some(t => selectedTags.includes(t)));
-    if (selectedSentiments.length) result = result.filter(q => selectedSentiments.includes(q.sentiment));
-    if (sortOrder === 'Most responses') result.sort((a, b) => b.responseCount - a.responseCount);
-    else if (sortOrder === 'Unanswered first') result.sort((a, b) => (a.isAnswered ? 1 : 0) - (b.isAnswered ? 1 : 0));
+    if (selectedTags.length) result = result.filter(q => q.tags.some(t => selectedTags.includes(t.name)));
+    if (sortOrder === 'Most responses') result.sort((a, b) => (b.responses?.length ?? 0) - (a.responses?.length ?? 0));
+    else if (sortOrder === 'Unanswered first') result.sort((a, b) => ((a.responses?.length ?? 0) ? 1 : 0) - ((b.responses?.length ?? 0) ? 1 : 0));
     return result;
-  }, [search, selectedInstitutions, selectedTags, selectedSentiments, sortOrder]);
+  }, [questions, selectedTags, sortOrder]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);

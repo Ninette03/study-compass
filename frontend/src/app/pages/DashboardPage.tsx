@@ -147,7 +147,8 @@ function AdvisorDashboard() {
   const { currentUser } = useApp();
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const stats = currentUser?.stats ?? { responses: 0, upvotes: 0, helped: 0 };
+  // TODO: Fetch real advisor stats from backend
+  const stats = { responses: 0, upvotes: 0, helped: 0 };
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
@@ -157,16 +158,10 @@ function AdvisorDashboard() {
           <div>
             <p className="text-[18px] font-medium text-white mb-1">{greeting}, {currentUser?.name.split(' ')[0]}!</p>
             <div className="flex items-center gap-2">
-              {currentUser?.isVerified ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px]" style={{ backgroundColor: '#E1F5EE', color: '#0F6E56' }}>
-                  ✓ Verified advisor
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px]" style={{ backgroundColor: '#FEF3C7', color: '#B45309' }}>
-                  Pending verification
-                </span>
-              )}
-              <span className="text-white/70 text-[12px]">Credibility: {currentUser?.credibility}</span>
+              {/* TODO: Fetch isVerified from profile endpoint */}
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px]" style={{ backgroundColor: '#FEF3C7', color: '#B45309' }}>
+                Verify your profile
+              </span>
             </div>
           </div>
           <div className="flex gap-4">
@@ -255,15 +250,12 @@ function AdvisorDashboard() {
               <AvatarCircle name={currentUser?.name ?? ''} size="card" />
               <div>
                 <p className="text-[14px] font-medium" style={{ color: '#1A1A1A' }}>{currentUser?.name}</p>
-                <p className="text-[12px]" style={{ color: '#5F5E5A' }}>{currentUser?.programme}</p>
-                <p className="text-[12px]" style={{ color: '#5F5E5A' }}>{currentUser?.institution}</p>
+                <p className="text-[12px]" style={{ color: '#5F5E5A' }}>{currentUser?.role.toUpperCase()}</p>
+                <p className="text-[12px]" style={{ color: '#5F5E5A' }}>Member since 2024</p>
               </div>
             </div>
-            <div className="flex flex-wrap gap-1 mb-4">
-              {(currentUser?.tags ?? []).slice(0, 4).map(t => <TagPill key={t} label={t} size="default" />)}
-            </div>
             <Link to={`/profile/${currentUser?.id}`} className="block text-center py-2 rounded-lg border text-[13px]" style={{ borderColor: '#DEDEDE', color: '#2C2C6E' }}>
-              Edit profile
+              View profile
             </Link>
           </div>
         </div>

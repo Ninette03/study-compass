@@ -30,7 +30,7 @@ function StrengthBar({ password }: { password: string }) {
 }
 
 export default function RegisterPage() {
-  const { login } = useApp();
+  const { registerAndLogin } = useApp();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [role, setRole] = useState<Role | null>(null);
@@ -80,11 +80,22 @@ export default function RegisterPage() {
   };
 
   const handleComplete = async () => {
+    if (!role) return;
     setSubmitting(true);
-    await new Promise(r => setTimeout(r, 1000));
-    login(role!);
-    setEmailVerificationSent(true);
-    setSubmitting(false);
+
+    try {
+      await registerAndLogin({
+        fullName: name,
+        email,
+        password,
+        role: role.toUpperCase() as 'STUDENT' | 'ADVISOR' | 'ADMIN',
+      });
+      setEmailVerificationSent(true);
+    } catch (error: any) {
+      console.error(error);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (emailVerificationSent) {
@@ -323,3 +334,4 @@ export default function RegisterPage() {
     </div>
   );
 }
+

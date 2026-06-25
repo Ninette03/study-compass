@@ -39,7 +39,7 @@ export const authApi = {
 export const questionApi = {
   createQuestion: (payload: { title: string; body: string; institutionId: string; programme?: string; tags: string[] }) =>
     api.post('/questions', payload),
-  getQuestions: (params?: { institutionId?: string; title?: string; skip?: number; take?: number }) =>
+  getQuestions: (params?: { institutionId?: string; title?: string; userId?: string; skip?: number; take?: number }) =>
     api.get('/questions', { params }),
   getQuestion: (id: string, sentimentFilter?: string) =>
     api.get(`/questions/${id}`, { params: sentimentFilter ? { sentimentFilter } : undefined }),
@@ -58,6 +58,12 @@ export const profileApi = {
     api.put('/profiles/student', payload),
   updateAdvisorProfile: (payload: any) =>
     api.put('/profiles/advisor', payload),
+  getVerificationQueue: () =>
+    api.get('/profiles/verification-queue'),
+  approveVerification: (advisorUserId: string) =>
+    api.post(`/profiles/advisor/${advisorUserId}/approve-verification`),
+  rejectVerification: (advisorUserId: string) =>
+    api.post(`/profiles/advisor/${advisorUserId}/reject-verification`),
 };
 
 export const notificationApi = {
@@ -78,4 +84,20 @@ export const adminApi = {
     api.get('/admin/institutions', { params }),
   getTags: (params?: { skip?: number; take?: number }) =>
     api.get('/admin/tags', { params }),
+};
+
+export const publicApi = {
+  getInstitutions: (params?: { skip?: number; take?: number }) =>
+    api.get('/institutions', { params }),
+  getInstitution: (id: string) =>
+    api.get(`/institutions/${id}`),
+  getTags: (params?: { skip?: number; take?: number }) =>
+    api.get('/tags', { params }),
+};
+
+export const moderationApi = {
+  getFlags: () => api.get('/moderation/flags'),
+  hideResponse: (responseId: string) => api.post(`/moderation/responses/${responseId}/hide`),
+  unhideResponse: (responseId: string) => api.post(`/moderation/responses/${responseId}/unhide`),
+  resolveFlag: (flagId: string) => api.post(`/moderation/flags/${flagId}/resolve`),
 };

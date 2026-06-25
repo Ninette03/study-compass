@@ -2,15 +2,16 @@ import express, { Express } from 'express';
 import cors from 'cors';
 import 'express-async-errors';
 
-import { config } from './config/env';
-import { errorHandler, notFoundHandler } from './middleware/errorHandler';
+import { config } from './config/env.js';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
-import authRoutes from './routes/auth';
-import questionsRoutes from './routes/questions';
-import profileRoutes from './routes/profiles';
-import moderationRoutes from './routes/moderation';
-import notificationRoutes from './routes/notifications';
-import adminRoutes from './routes/admin';
+import authRoutes from './routes/auth.js';
+import questionsRoutes from './routes/questions.js';
+import profileRoutes from './routes/profiles.js';
+import moderationRoutes from './routes/moderation.js';
+import notificationRoutes from './routes/notifications.js';
+import adminRoutes from './routes/admin.js';
+import publicRoutes from './routes/public.js';
 
 const app: Express = express();
 
@@ -37,6 +38,7 @@ app.use('/profiles', profileRoutes);
 app.use('/moderation', moderationRoutes);
 app.use('/notifications', notificationRoutes);
 app.use('/admin', adminRoutes);
+app.use('/', publicRoutes);
 
 app.use(notFoundHandler);
 

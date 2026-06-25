@@ -33,7 +33,7 @@ export class NotificationService {
       }
 
       // Create notifications for each matched advisor
-      const notifications = matchedAdvisors.map((advisor) => ({
+      const notifications = matchedAdvisors.map((advisor: { userId: string }) => ({
         userId: advisor.userId,
         type: 'MATCHED_QUESTION' as NotificationType,
         title: 'New question matching your expertise',

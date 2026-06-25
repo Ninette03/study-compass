@@ -1,7 +1,6 @@
 import { Outlet, useLocation } from 'react-router';
-import { Toaster } from './components/ui/sonner';
-import { Navbar } from './components/shared/Navbar';
-import { DemoSwitcher } from './components/shared/DemoSwitcher';
+import { Toaster } from './components/ui/sonner (1)';
+import { Navbar } from './components/shared/Navbar (1).tsx';
 import { useEffect, useState } from 'react';
 
 function OfflineBanner() {
@@ -17,6 +16,21 @@ function OfflineBanner() {
   return (
     <div className="w-full py-2 px-4 text-center text-[13px]" style={{ backgroundColor: '#FEF9C3', color: '#713F12' }}>
       You appear to be offline — some features may not work.
+    </div>
+  );
+}
+
+export function Root() {
+  const location = useLocation();
+  const isLandingPage = location.pathname === '/';
+  return (
+    <div className="flex flex-col min-h-screen">
+      <OfflineBanner />
+      <Navbar />
+      <div className="flex-1">
+        <Outlet />
+      </div>
+      <Toaster position="top-right" />
     </div>
   );
 }

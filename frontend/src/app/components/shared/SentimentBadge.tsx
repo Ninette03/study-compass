@@ -1,4 +1,4 @@
-import { SentimentType } from '../../data/mockData';
+import type { SentimentType } from '../../types';
 
 interface SentimentBadgeProps {
   sentiment: SentimentType;

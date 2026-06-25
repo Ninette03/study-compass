@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Bell, Menu, X, BookOpen, ChevronDown } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { AvatarCircle } from './AvatarCircle (1).tsx';
-import { notifications } from '../../data/mockData';
+import { notificationApi } from '../../api';
 
 export function Navbar() {
   const { currentUser, isAuthenticated, logout } = useApp();
@@ -11,8 +11,17 @@ export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
+  const [notifications, setNotifications] = useState<{ id: string; message: string; isRead: boolean; timeAgo: string }[]>([]);
+  const [unread, setUnread] = useState(0);
 
-  const unread = notifications.filter(n => !n.isRead).length;
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    notificationApi.getUnreadNotifications().then(res => {
+      const notifs = res.data.data.notifications ?? [];
+      setNotifications(notifs);
+      setUnread(res.data.data.unreadCount ?? 0);
+    }).catch(() => {});
+  }, [isAuthenticated]);
 
   return (
     <nav className="sticky top-0 z-50 w-full" style={{ backgroundColor: '#2C2C6E' }}>

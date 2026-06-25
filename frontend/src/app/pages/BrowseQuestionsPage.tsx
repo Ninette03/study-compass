@@ -5,7 +5,7 @@ import { TagPill } from '../components/shared/TagPill (1).tsx';
 import { SentimentBadge, SentimentSummaryLabel } from '../components/shared/SentimentBadge';
 import { AvatarCircle } from '../components/shared/AvatarCircle (1).tsx';
 import { EmptyState } from '../components/shared/EmptyState (1).tsx';
-import { institutions, allTags, SentimentType } from '../data/mockData';
+import type { SentimentType } from '../types';
 import { questionApi } from '../api';
 
 const PAGE_SIZE = 20;

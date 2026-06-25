@@ -15,7 +15,13 @@ export class QAController {
     try {
       if (!req.user) throw new ValidationError('Authentication required');
 
-      const { title, body, institutionId, programme, tags } = req.body;
+      const { title, body, institutionId, programme, tags } = req.body as {
+        title: string;
+        body: string;
+        institutionId: string;
+        programme?: string;
+        tags?: string[];
+      };
 
       if (!title || !body || !institutionId) {
         throw new ValidationError('Title, body, and institution are required');
@@ -55,7 +61,7 @@ export class QAController {
       await notificationService.notifyMatchedAdvisors(
         question.id,
         question.title,
-        question.tags.map((tag) => tag.id)
+        question.tags.map((tag: { id: string }) => tag.id)
       );
 
       res.status(201).json({
@@ -72,11 +78,12 @@ export class QAController {
    */
   async getQuestions(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { institutionId, title, skip = 0, take = 20 } = req.query;
+      const { institutionId, title, userId, skip = 0, take = 20 } = req.query;
 
       const where: any = {};
       if (institutionId) where.institutionId = institutionId;
       if (title) where.title = { contains: title, mode: 'insensitive' };
+      if (userId) where.userId = userId;
 
       const questions = await prisma.question.findMany({
         where,

@@ -4,6 +4,7 @@ import { Share2, ThumbsUp, Flag, CheckCircle, ChevronRight, AlertTriangle, X, Lo
 import { useApp } from '../context/AppContext';
 import { TagPill } from '../components/shared/TagPill (1).tsx';
 import { SentimentBadge } from '../components/shared/SentimentBadge';
+import type { SentimentType } from '../types';
 import { VerifiedBadge } from '../components/shared/VerifiedBadge';
 import { AvatarCircle } from '../components/shared/AvatarCircle (1).tsx';
 import { EmptyState } from '../components/shared/EmptyState (1)';

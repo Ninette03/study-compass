@@ -1,10 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Loader2, Search } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { TagPill } from '../components/shared/TagPill (1).tsx';
-import { institutions, questions, allTags } from '../data/mockData';
-import { questionApi } from '../api';
+import { questionApi, publicApi } from '../api';
 import { toast } from 'sonner';
 
 export default function AskPage() {
@@ -14,20 +13,30 @@ export default function AskPage() {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [institution, setInstitution] = useState('');
+  const [institutionId, setInstitutionId] = useState('');
   const [institutionSearch, setInstitutionSearch] = useState('');
   const [programme, setProgramme] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [similarLoading, setSimilarLoading] = useState(false);
+  const [institutions, setInstitutions] = useState<{ id: string; name: string; country: string }[]>([]);
+  const [allTags, setAllTags] = useState<{ id: string; name: string }[]>([]);
+  const [similarQuestions, setSimilarQuestions] = useState<{ id: string; title: string }[]>([]);
 
-  const filteredInstitutions = institutionSearch
-    ? institutions.filter(i => i.name.toLowerCase().includes(institutionSearch.toLowerCase()) || i.country.toLowerCase().includes(institutionSearch.toLowerCase()))
-    : institutions;
+  useEffect(() => {
+    publicApi.getInstitutions().then(res => setInstitutions(res.data.data.institutions ?? [])).catch(() => {});
+    publicApi.getTags().then(res => setAllTags(res.data.data.tags ?? [])).catch(() => {});
+  }, []);
 
-  const similarQuestions = title.length >= 10
-    ? questions.filter(q => q.title.toLowerCase().split(' ').some(w => w.length > 3 && title.toLowerCase().includes(w))).slice(0, 3)
-    : [];
+  useEffect(() => {
+    if (title.length < 10) { setSimilarQuestions([]); return; }
+    const timeout = setTimeout(() => {
+      questionApi.getQuestions({ title, take: 3 })
+        .then(res => setSimilarQuestions(res.data.data.questions ?? []))
+        .catch(() => {});
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [title]);
 
   const addTag = (tag: string) => {
     if (tag && !tags.includes(tag) && tags.length < 8) {
@@ -44,7 +53,7 @@ export default function AskPage() {
       const response = await questionApi.createQuestion({
         title,
         body,
-        institutionId: institution,
+        institutionId,
         programme: programme || undefined,
         tags,
       });
@@ -59,7 +68,11 @@ export default function AskPage() {
     }
   };
 
-  const canSubmit = title.trim() && institution && tags.length >= 1;
+  const filteredInstitutions = institutionSearch
+    ? institutions.filter(i => i.name.toLowerCase().includes(institutionSearch.toLowerCase()) || i.country.toLowerCase().includes(institutionSearch.toLowerCase()))
+    : institutions;
+
+  const canSubmit = title.trim() && institutionId && tags.length >= 1;
 
   if (!isAuthenticated) {
     return (
@@ -111,7 +124,7 @@ export default function AskPage() {
             {institution ? (
               <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border" style={{ borderColor: '#2C2C6E', backgroundColor: '#EEEDFE' }}>
                 <span className="flex-1 text-[13px]" style={{ color: '#2C2C6E' }}>{institution}</span>
-                <button type="button" onClick={() => setInstitution('')} className="text-[12px]" style={{ color: '#888780' }}>Change</button>
+                <button type="button" onClick={() => { setInstitution(''); setInstitutionId(''); }} className="text-[12px]" style={{ color: '#888780' }}>Change</button>
               </div>
             ) : (
               <div className="relative">
@@ -129,7 +142,7 @@ export default function AskPage() {
                       <button
                         key={inst.id}
                         type="button"
-                        onClick={() => { setInstitution(inst.name); setInstitutionSearch(''); }}
+                        onClick={() => { setInstitution(inst.name); setInstitutionId(inst.id); setInstitutionSearch(''); }}
                         className="w-full text-left px-4 py-2.5 text-[13px] hover:bg-gray-50 border-b last:border-0"
                         style={{ borderColor: '#DEDEDE', color: '#1A1A1A' }}
                       >
@@ -215,11 +228,7 @@ export default function AskPage() {
                 <div className="space-y-3">
                   {similarQuestions.map(q => (
                     <a key={q.id} href={`/questions/${q.id}`} target="_blank" rel="noreferrer" className="block p-3 rounded-lg hover:bg-gray-50 transition-colors" style={{ border: '1px solid #DEDEDE' }}>
-                      <p className="text-[13px] mb-1" style={{ color: '#1A1A1A' }}>{q.title}</p>
-                      <div className="flex items-center gap-2">
-                        <TagPill label={q.institutionName} size="default" />
-                        <span className="text-[12px]" style={{ color: '#888780' }}>{q.responseCount} responses</span>
-                      </div>
+                      <p className="text-[13px]" style={{ color: '#1A1A1A' }}>{q.title}</p>
                     </a>
                   ))}
                 </div>

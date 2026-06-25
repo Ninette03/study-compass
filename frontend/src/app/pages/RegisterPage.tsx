@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Eye, EyeOff, BookOpen, Loader2, CheckCircle, User, Star, Shield, GraduationCap } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { TagPill } from '../components/shared/TagPill (1).tsx';
-import { institutions, allTags } from '../data/mockData';
+import { publicApi } from '../api';
 
 type Role = 'student' | 'advisor' | 'admin';
 
@@ -59,7 +59,15 @@ export default function RegisterPage() {
   const [uploading, setUploading] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
   const [emailVerificationSent, setEmailVerificationSent] = useState(false);
+  const [institutions, setInstitutions] = useState<{ id: string; name: string; country: string }[]>([]);
+  const [allTags, setAllTags] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    publicApi.getInstitutions().then(r => setInstitutions(r.data.data.institutions ?? [])).catch(() => {});
+    publicApi.getTags().then(r => setAllTags(r.data.data.tags ?? [])).catch(() => {});
+  }, []);
 
   const step2Valid = name && email && password.length >= 8 && password === confirmPassword && agreed;
   const step3StudentValid = educationLevel && country;
@@ -82,6 +90,7 @@ export default function RegisterPage() {
   const handleComplete = async () => {
     if (!role) return;
     setSubmitting(true);
+    setError('');
 
     try {
       await registerAndLogin({
@@ -92,7 +101,8 @@ export default function RegisterPage() {
       });
       setEmailVerificationSent(true);
     } catch (error: any) {
-      console.error(error);
+      const message = error?.response?.data?.error?.message ?? error?.message ?? 'Registration failed. Please try again.';
+      setError(message);
     } finally {
       setSubmitting(false);
     }
@@ -323,6 +333,7 @@ export default function RegisterPage() {
                 Complete registration
               </button>
             </div>
+            {error && <p className="mt-3 text-center text-[13px]" style={{ color: '#D85A30' }}>{error}</p>}
           </div>
         )}
 

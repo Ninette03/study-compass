@@ -6,7 +6,7 @@ import { SentimentBadge, SentimentSummaryLabel } from '../components/shared/Sent
 import { AvatarCircle } from '../components/shared/AvatarCircle (1).tsx';
 import { EmptyState } from '../components/shared/EmptyState (1).tsx';
 import type { SentimentType } from '../types';
-import { questionApi } from '../api';
+import { questionApi, publicApi } from '../api';
 
 const PAGE_SIZE = 20;
 
@@ -80,6 +80,13 @@ export default function BrowseQuestionsPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [institutions, setInstitutions] = useState<{ id: string; name: string; _count?: { questions: number } }[]>([]);
+  const [allTags, setAllTags] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    publicApi.getInstitutions().then(res => setInstitutions(res.data.data.institutions ?? [])).catch(() => {});
+    publicApi.getTags().then(res => setAllTags(res.data.data.tags ?? [])).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -143,7 +150,7 @@ export default function BrowseQuestionsPage() {
             <label key={inst.id} className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={selectedInstitutions.includes(inst.id)} onChange={() => toggleInstitution(inst.id)} className="rounded" />
               <span className="text-[13px] flex-1" style={{ color: '#5F5E5A' }}>{inst.name}</span>
-              <span className="text-[11px]" style={{ color: '#888780' }}>{inst.questions}</span>
+              <span className="text-[11px]" style={{ color: '#888780' }}>{inst._count?.questions ?? 0}</span>
             </label>
           ))}
         </div>

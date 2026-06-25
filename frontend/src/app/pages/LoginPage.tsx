@@ -21,7 +21,7 @@ export default function LoginPage() {
       await loginWithCredentials({ email, password });
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Incorrect email or password.');
+      setError(err?.response?.data?.error?.message || err?.message || 'Incorrect email or password.');
     } finally {
       setLoading(false);
     }

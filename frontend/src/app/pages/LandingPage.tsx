@@ -1,16 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Search, ShieldCheck, ArrowRight, Star, Zap, CheckCircle } from 'lucide-react';
 import { TagPill } from '../components/shared/TagPill (1).tsx';
 import { SentimentSummaryLabel } from '../components/shared/SentimentBadge';
 import { AvatarCircle } from '../components/shared/AvatarCircle (1).tsx';
-import { questions, siteStats } from '../data/mockData.ts';
+import { questionApi } from '../api';
 import { useApp } from '../context/AppContext.tsx';
+
+const siteStats = { verifiedAdvisors: 1200, institutions: 80, questionsAnswered: 4500, responseRate: 91 };
+
+interface Question {
+  id: string;
+  title: string;
+  institution?: { name: string };
+  tags: { name: string }[];
+  responses?: { id: string }[];
+  user?: { fullName: string };
+}
 
 export default function LandingPage() {
   const { isAuthenticated } = useApp();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [questions, setQuestions] = useState<Question[]>([]);
+
+  useEffect(() => {
+    questionApi.getQuestions({ take: 5 }).then(res => setQuestions(res.data.data.questions ?? [])).catch(() => {});
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,16 +166,15 @@ export default function LandingPage() {
                 className="flex items-start gap-3 p-4 bg-white rounded-lg border hover:border-[#2C2C6E]/30 transition-colors group"
                 style={{ borderColor: '#DEDEDE' }}
               >
-                <AvatarCircle name={q.askerName} size="sm" />
+                <AvatarCircle name={q.user?.fullName ?? ''} size="sm" />
                 <div className="flex-1 min-w-0">
                   <p className="text-[14px] font-medium group-hover:text-[#2C2C6E] transition-colors truncate" style={{ color: '#1A1A1A' }}>
                     {q.title}
                   </p>
                   <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                    <TagPill label={q.institutionName} size="default" />
-                    {q.tags.slice(0, 2).map(t => <TagPill key={t} label={t} />)}
-                    <span className="text-[12px]" style={{ color: '#888780' }}>{q.responseCount} responses</span>
-                    <SentimentSummaryLabel sentiment={q.sentiment} />
+                    {q.institution && <TagPill label={q.institution.name} size="default" />}
+                    {q.tags.slice(0, 2).map(t => <TagPill key={t.name} label={t.name} />)}
+                    <span className="text-[12px]" style={{ color: '#888780' }}>{q.responses?.length ?? 0} responses</span>
                   </div>
                 </div>
               </Link>

@@ -1,8 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import { Bell, MessageSquare, ThumbsUp, CheckCircle, Zap, AlertCircle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { notifications, Notification } from '../data/mockData';
+import { notificationApi } from '../api';
+
+interface Notification {
+  id: string;
+  type: string;
+  message: string;
+  isRead: boolean;
+  questionId?: string;
+  timeAgo?: string;
+  createdAt?: string;
+}
 
 type FilterTab = 'All' | 'Unread' | 'Mentions' | 'Responses' | 'System';
 
@@ -41,7 +51,17 @@ function NotificationItem({ notif, isRead }: { notif: Notification; isRead: bool
 export default function NotificationsPage() {
   const { isAuthenticated } = useApp();
   const [activeTab, setActiveTab] = useState<FilterTab>('All');
-  const [readIds, setReadIds] = useState<string[]>(notifications.filter(n => n.isRead).map(n => n.id));
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [readIds, setReadIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    notificationApi.getUnreadNotifications().then(res => {
+      const notifs: Notification[] = res.data.data.notifications ?? [];
+      setNotifications(notifs);
+      setReadIds(notifs.filter(n => n.isRead).map(n => n.id));
+    }).catch(() => {});
+  }, [isAuthenticated]);
 
   if (!isAuthenticated) {
     return (
@@ -63,7 +83,10 @@ export default function NotificationsPage() {
 
   const unreadCount = notifications.filter(n => !readIds.includes(n.id)).length;
 
-  const markAllRead = () => setReadIds(notifications.map(n => n.id));
+  const markAllRead = () => {
+    notificationApi.markAllAsRead().catch(() => {});
+    setReadIds(notifications.map(n => n.id));
+  };
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">

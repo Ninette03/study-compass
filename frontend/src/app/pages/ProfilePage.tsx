@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router';
 import { Edit2, CheckCircle, Upload, Save, AlertTriangle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -6,8 +6,34 @@ import { AvatarCircle } from '../components/shared/AvatarCircle (1).tsx';
 import { TagPill } from '../components/shared/TagPill (1)';
 import { SentimentBadge } from '../components/shared/SentimentBadge';
 import { VerifiedBadge } from '../components/shared/VerifiedBadge';
-import { users, questions, responses } from '../data/mockData';
+import { profileApi, questionApi } from '../api';
 import { toast } from 'sonner';
+
+interface ProfileUser {
+  id: string;
+  name: string;
+  email: string;
+  role: 'student' | 'advisor';
+  institution?: string;
+  programme?: string;
+  yearEntry?: number;
+  yearGrad?: number;
+  isVerified?: boolean;
+  credibilityScore?: number;
+  totalUpvotes?: number;
+  tags?: string[];
+  interests?: string[];
+  joinDate?: string;
+}
+
+interface Question {
+  id: string;
+  title: string;
+  institution?: { name: string };
+  tags: { name: string }[];
+  responses?: { id: string }[];
+  createdAt?: string;
+}
 
 const credibilityColors: Record<string, { color: string; bg: string; pct: number }> = {
   New: { color: '#888780', bg: '#F1EFE8', pct: 15 },
@@ -16,7 +42,14 @@ const credibilityColors: Record<string, { color: string; bg: string; pct: number
   Trusted: { color: '#0F6E56', bg: '#E1F5EE', pct: 95 },
 };
 
-function EditProfilePanel({ user, onSave }: { user: typeof users[0]; onSave: () => void }) {
+function credibilityLabel(score: number): string {
+  if (score >= 75) return 'Trusted';
+  if (score >= 40) return 'Established';
+  if (score >= 15) return 'Growing';
+  return 'New';
+}
+
+function EditProfilePanel({ user, onSave }: { user: ProfileUser; onSave: () => void }) {
   const [name, setName] = useState(user.name);
   const [emailNotifMatch, setEmailNotifMatch] = useState(true);
   const [emailNotifUpvote, setEmailNotifUpvote] = useState(false);
@@ -98,11 +131,63 @@ export default function ProfilePage() {
   const { userId } = useParams();
   const { currentUser } = useApp();
   const [editing, setEditing] = useState(false);
+  const [user, setUser] = useState<ProfileUser | null>(null);
+  const [userQuestions, setUserQuestions] = useState<Question[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const user = users.find(u => u.id === userId) ?? users[0];
+  useEffect(() => {
+    if (!userId) return;
+    setLoading(true);
+
+    // Try advisor profile first, then student
+    profileApi.getAdvisorProfile(userId)
+      .then(r => {
+        const p = r.data.data;
+        setUser({
+          id: p.user.id,
+          name: p.user.fullName,
+          email: p.user.email,
+          role: 'advisor',
+          institution: p.institutions?.[0]?.name,
+          programme: p.programme,
+          yearEntry: p.yearOfEntry,
+          yearGrad: p.yearOfGraduation,
+          isVerified: p.isVerified,
+          credibilityScore: p.credibilityScore,
+          totalUpvotes: p.totalUpvotes,
+          tags: p.tags?.map((t: { name: string }) => t.name) ?? [],
+          joinDate: new Date(p.user.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        });
+      })
+      .catch(() => {
+        profileApi.getStudentProfile(userId)
+          .then(r => {
+            const p = r.data.data;
+            setUser({
+              id: p.user.id,
+              name: p.user.fullName,
+              email: p.user.email,
+              role: 'student',
+              interests: p.tags?.map((t: { name: string }) => t.name) ?? [],
+              joinDate: new Date(p.user.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+            });
+          })
+          .catch(() => {});
+      })
+      .finally(() => setLoading(false));
+
+    questionApi.getQuestions({ userId }).then(r => setUserQuestions(r.data.data.questions ?? [])).catch(() => {});
+  }, [userId]);
+
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-[60vh]"><p className="text-[14px]" style={{ color: '#888780' }}>Loading profile…</p></div>;
+  }
+
+  if (!user) {
+    return <div className="flex items-center justify-center min-h-[60vh]"><p className="text-[14px]" style={{ color: '#888780' }}>Profile not found.</p></div>;
+  }
+
   const isOwnProfile = currentUser?.id === user.id;
-  const userQuestions = questions.filter(q => q.askerId === user.id);
-  const userResponses = responses.filter(r => r.advisorId === user.id);
 
   if (editing && isOwnProfile) {
     return (
@@ -116,13 +201,13 @@ export default function ProfilePage() {
     );
   }
 
+  const credibility = credibilityLabel(user.credibilityScore ?? 0);
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Profile header + sidebar */}
         <div className="space-y-4">
           <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#DEDEDE' }}>
-            {/* Header */}
             <div className="flex items-start gap-3 mb-4">
               <AvatarCircle name={user.name} size="profile" />
               <div className="flex-1 min-w-0">
@@ -137,114 +222,71 @@ export default function ProfilePage() {
               )}
             </div>
 
-            {/* Advisor credentials */}
             {user.role === 'advisor' && (
               <>
                 <div className="p-3 rounded-lg mb-4" style={{ backgroundColor: '#EEEDFE' }}>
-                  <p className="text-[12px] font-medium mb-0.5" style={{ color: '#2C2C6E' }}>
-                    Attended {user.institution}
-                  </p>
-                  <p className="text-[12px]" style={{ color: '#5F5E5A' }}>
-                    {user.programme} · {user.yearEntry}–{user.yearGrad}
-                  </p>
+                  {user.institution && <p className="text-[12px] font-medium mb-0.5" style={{ color: '#2C2C6E' }}>Attended {user.institution}</p>}
+                  <p className="text-[12px]" style={{ color: '#5F5E5A' }}>{user.programme} · {user.yearEntry}–{user.yearGrad ?? 'present'}</p>
                   {user.isVerified && (
                     <div className="mt-1 flex items-center gap-1 text-[11px]" style={{ color: '#0F6E56' }}>
                       <CheckCircle size={11} /> Verified advisor
                     </div>
                   )}
                 </div>
-
-                {/* Credibility */}
-                {user.credibility && (
-                  <div className="mb-4">
-                    <div className="flex items-center justify-between text-[12px] mb-1.5" style={{ color: '#5F5E5A' }}>
-                      <span>Credibility</span>
-                      <span className="font-medium" style={{ color: credibilityColors[user.credibility]?.color }}>{user.credibility}</span>
-                    </div>
-                    <div className="h-2 rounded-full" style={{ backgroundColor: '#F7F7FA' }}>
-                      <div className="h-2 rounded-full transition-all" style={{ width: `${credibilityColors[user.credibility]?.pct ?? 50}%`, backgroundColor: credibilityColors[user.credibility]?.color }} />
-                    </div>
+                <div className="mb-4">
+                  <div className="flex items-center justify-between text-[12px] mb-1.5" style={{ color: '#5F5E5A' }}>
+                    <span>Credibility</span>
+                    <span className="font-medium" style={{ color: credibilityColors[credibility]?.color }}>{credibility}</span>
                   </div>
-                )}
-
-                {/* Stats */}
-                {user.stats && (
-                  <div className="grid grid-cols-3 gap-2 mb-4 text-center">
-                    {[
-                      { label: 'Responses', value: user.stats.responses },
-                      { label: 'Upvotes', value: user.stats.upvotes },
-                      { label: 'Helped', value: user.stats.helped },
-                    ].map(s => (
-                      <div key={s.label} className="p-2 rounded-lg" style={{ backgroundColor: '#F7F7FA' }}>
-                        <div className="text-[16px] font-medium" style={{ color: '#2C2C6E' }}>{s.value}</div>
-                        <div className="text-[11px]" style={{ color: '#888780' }}>{s.label}</div>
-                      </div>
-                    ))}
+                  <div className="h-2 rounded-full" style={{ backgroundColor: '#F7F7FA' }}>
+                    <div className="h-2 rounded-full transition-all" style={{ width: `${credibilityColors[credibility]?.pct ?? 15}%`, backgroundColor: credibilityColors[credibility]?.color }} />
                   </div>
-                )}
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-4 text-center">
+                  {[{ label: 'Upvotes', value: user.totalUpvotes ?? 0 }, { label: 'Questions answered', value: userQuestions.length }].map(s => (
+                    <div key={s.label} className="p-2 rounded-lg" style={{ backgroundColor: '#F7F7FA' }}>
+                      <div className="text-[16px] font-medium" style={{ color: '#2C2C6E' }}>{s.value}</div>
+                      <div className="text-[11px]" style={{ color: '#888780' }}>{s.label}</div>
+                    </div>
+                  ))}
+                </div>
               </>
             )}
 
-            {/* Tags */}
-            {(user.tags || user.interests) && (
+            {(user.tags?.length || user.interests?.length) ? (
               <div>
-                <p className="text-[12px] font-medium mb-2" style={{ color: '#5F5E5A' }}>
-                  {user.role === 'advisor' ? 'Advisory tags' : 'Interests'}
-                </p>
+                <p className="text-[12px] font-medium mb-2" style={{ color: '#5F5E5A' }}>{user.role === 'advisor' ? 'Advisory tags' : 'Interests'}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {(user.tags ?? user.interests ?? []).map(t => <TagPill key={t} label={t} />)}
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
 
-        {/* Activity */}
         <div className="lg:col-span-2 space-y-6">
-          {user.role === 'advisor' && userResponses.length > 0 && (
-            <section>
-              <h2 className="mb-3" style={{ fontSize: '15px', fontWeight: 500, color: '#1A1A1A' }}>Response history</h2>
-              <div className="space-y-3">
-                {userResponses.map(r => {
-                  const q = questions.find(q => q.id === r.questionId);
-                  return (
-                    <Link key={r.id} to={`/questions/${r.questionId}`} className="block bg-white rounded-xl border p-4 hover:border-[#2C2C6E]/30 transition-colors" style={{ borderColor: '#DEDEDE' }}>
-                      <p className="text-[13px] font-medium mb-2 truncate" style={{ color: '#1A1A1A' }}>{q?.title}</p>
-                      <p className="text-[13px] mb-3 line-clamp-2" style={{ color: '#5F5E5A' }}>{r.body}</p>
-                      <div className="flex items-center gap-3">
-                        <SentimentBadge sentiment={r.sentiment} size="sm" />
-                        <span className="text-[12px]" style={{ color: '#888780' }}>↑ {r.upvotes} upvotes · {r.timeAgo}</span>
-                      </div>
-                    </Link>
-                  );
-                })}
+          <section>
+            <h2 className="mb-3" style={{ fontSize: '15px', fontWeight: 500, color: '#1A1A1A' }}>
+              {user.role === 'advisor' ? 'Questions answered' : 'Questions asked'}
+            </h2>
+            {userQuestions.length === 0 ? (
+              <div className="bg-white rounded-xl border p-6 text-center" style={{ borderColor: '#DEDEDE' }}>
+                <p className="text-[13px]" style={{ color: '#888780' }}>No questions yet.</p>
               </div>
-            </section>
-          )}
-
-          {user.role === 'student' && (
-            <section>
-              <h2 className="mb-3" style={{ fontSize: '15px', fontWeight: 500, color: '#1A1A1A' }}>Questions asked</h2>
-              {userQuestions.length === 0 ? (
-                <div className="bg-white rounded-xl border p-6 text-center" style={{ borderColor: '#DEDEDE' }}>
-                  <p className="text-[13px]" style={{ color: '#888780' }}>No questions posted yet.</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {userQuestions.map(q => (
-                    <Link key={q.id} to={`/questions/${q.id}`} className="block bg-white rounded-xl border p-4 hover:border-[#2C2C6E]/30 transition-colors" style={{ borderColor: '#DEDEDE' }}>
-                      <p className="text-[13px] font-medium mb-2" style={{ color: '#1A1A1A' }}>{q.title}</p>
-                      <div className="flex items-center gap-2">
-                        <TagPill label={q.institutionName} />
-                        <span className="text-[12px]" style={{ color: '#888780' }}>{q.responseCount} responses · {q.timeAgo}</span>
-                        {q.isAnswered && <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ backgroundColor: '#E1F5EE', color: '#0F6E56' }}>Answered</span>}
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </section>
-          )}
+            ) : (
+              <div className="space-y-3">
+                {userQuestions.map(q => (
+                  <Link key={q.id} to={`/questions/${q.id}`} className="block bg-white rounded-xl border p-4 hover:border-[#2C2C6E]/30 transition-colors" style={{ borderColor: '#DEDEDE' }}>
+                    <p className="text-[13px] font-medium mb-2" style={{ color: '#1A1A1A' }}>{q.title}</p>
+                    <div className="flex items-center gap-2">
+                      {q.institution && <TagPill label={q.institution.name} />}
+                      <span className="text-[12px]" style={{ color: '#888780' }}>{q.responses?.length ?? 0} responses</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </section>
         </div>
       </div>
     </div>

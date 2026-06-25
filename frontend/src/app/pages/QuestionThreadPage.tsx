@@ -81,7 +81,7 @@ function ResponseCard({ r, onUpvote }: { r: Response; onUpvote: (id: string) => 
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <SentimentBadge sentiment={r.sentiment.toLowerCase()} size="sm" />
+              <SentimentBadge sentiment={r.sentiment.toLowerCase() as SentimentType} size="sm" />
               <span className="text-[12px]" style={{ color: '#888780' }}>{r.createdAt ? new Date(r.createdAt).toLocaleDateString() : 'Recently'}</span>
             </div>
           </div>

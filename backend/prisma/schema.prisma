@@ -1,0 +1,306 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  password  String    // bcrypt hashed
+  fullName  String
+  role      UserRole
+  
+  // Authentication
+  emailVerified Boolean @default(false)
+  emailVerificationToken String?
+  passwordResetToken String?
+  passwordResetExpiresAt DateTime?
+  
+  // Profile information
+  profilePhoto String?
+  
+  // Relationships
+  studentProfile StudentProfile?
+  advisorProfile AdvisorProfile?
+  questions Question[]
+  responses Response[]
+  flags Flag[]
+  notifications Notification[]
+  upvotes ResponseUpvote[]
+  
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+  
+  @@index([email])
+  @@index([emailVerified])
+  @@index([role])
+}
+
+enum UserRole {
+  STUDENT
+  ADVISOR
+  INSTITUTION_REP
+  ADMIN
+}
+
+model StudentProfile {
+  id        String    @id @default(cuid())
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Profile details
+  educationLevel String // "high_school_graduate", "undergraduate", "postgraduate"
+  countryOfResidence String
+  
+  // Interest tags
+  tags Tag[] @relation("StudentTags")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([userId])
+}
+
+model AdvisorProfile {
+  id        String    @id @default(cuid())
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Education details
+  institutions Institution[] @relation("AdvisorInstitutions")
+  programme     String // e.g., "BSc Computer Science"
+  yearOfEntry   Int
+  yearOfGraduation Int?
+  currentStatus String // "graduate", "current_student", "dropout"
+  
+  // Verification
+  isVerified    Boolean @default(false)
+  verificationToken String?
+  idVerificationUrl String?
+  verificationReviewedBy String?
+  verificationReviewedAt DateTime?
+  verificationRejectionReason String?
+  
+  // Advisory tags
+  tags Tag[] @relation("AdvisorTags")
+  
+  // Credibility
+  credibilityScore Int @default(0) // calculated from upvotes, acceptance rate, account age
+  totalUpvotes Int @default(0)
+  responseAcceptanceRate Float @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([isVerified])
+  @@index([credibilityScore])
+}
+
+model Institution {
+  id        String    @id @default(cuid())
+  name      String
+  country   String
+  website   String?
+  
+  // Claim management
+  isClaimed Boolean @default(false)
+  claimedBy String?
+  claimClaimedAt DateTime?
+  
+  // Relationships
+  questions Question[]
+  advisors AdvisorProfile[] @relation("AdvisorInstitutions")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([name])
+  @@index([country])
+  @@index([isClaimed])
+}
+
+model Tag {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  category  String?   // e.g., "academic", "lifestyle", "admission"
+  
+  // Relationships
+  questions Question[] @relation("QuestionTags")
+  studentProfiles StudentProfile[] @relation("StudentTags")
+  advisorProfiles AdvisorProfile[] @relation("AdvisorTags")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([name])
+  @@index([category])
+}
+
+model Question {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title     String
+  body      String
+  
+  // Institution and programme context
+  institutionId String
+  institution Institution @relation(fields: [institutionId], references: [id])
+  programme String?
+  
+  // Tags
+  tags Tag[] @relation("QuestionTags")
+  
+  // Responses
+  responses Response[]
+  
+  // Metadata
+  viewCount Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([institutionId])
+  @@index([createdAt])
+}
+
+model Response {
+  id        String    @id @default(cuid())
+  questionId String
+  question  Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Response content
+  yearAttended Int?
+  programme   String?
+  body        String
+  whatWorkedWell String?
+  whatCouldBeBetter String?
+  wouldRecommend String? // "yes", "no", "depends"
+  
+  // Sentiment classification
+  sentiment Sentiment @default(PENDING)
+  sentimentConfidence Float?
+  
+  // Flags
+  flags     Flag[]
+  flagCount Int @default(0)
+  isAutoFlagged Boolean @default(false)
+  isHidden  Boolean @default(false)
+  
+  // Upvotes
+  upvotes   ResponseUpvote[]
+  upvoteCount Int @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([questionId])
+  @@index([userId])
+  @@index([sentiment])
+  @@index([isHidden])
+  @@index([createdAt])
+}
+
+enum Sentiment {
+  PENDING
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+}
+
+model ResponseUpvote {
+  id        String    @id @default(cuid())
+  responseId String
+  response  Response  @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([responseId, userId]) // User can only upvote once per response
+  @@index([responseId])
+  @@index([userId])
+}
+
+model Flag {
+  id        String    @id @default(cuid())
+  responseId String
+  response  Response  @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  reason    FlagReason
+  description String?
+  
+  // Review status
+  isResolved Boolean @default(false)
+  resolvedBy String?
+  resolvedAt DateTime?
+  resolutionNotes String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([responseId, userId]) // User can only flag once per response
+  @@index([responseId])
+  @@index([userId])
+  @@index([isResolved])
+  @@index([createdAt])
+}
+
+enum FlagReason {
+  BIASED
+  OUTDATED
+  OFFENSIVE
+  SPAM
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type      NotificationType
+  title     String
+  message   String
+  
+  // Related entities
+  questionId String?
+  responseId String?
+  
+  // Status
+  isRead    Boolean @default(false)
+  readAt    DateTime?
+  
+  createdAt DateTime @default(now())
+  
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+enum NotificationType {
+  MATCHED_QUESTION      // New question matching advisor's tags
+  NEW_RESPONSE          // New response to student's question
+  RESPONSE_UPVOTED      // Response received an upvote
+  VERIFICATION_APPROVED // Advisor verification approved
+  VERIFICATION_REJECTED // Advisor verification rejected
+  AUTO_FLAG_RESOLVED    // Auto-flag resolved
+  RESPONSE_HIDDEN       // Response was hidden by institution
+}

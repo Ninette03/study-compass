@@ -54,6 +54,9 @@ export class AdminController {
         orderBy: { name: 'asc' },
         skip: parseInt(String(skip)),
         take: parseInt(String(take)),
+        include: {
+          _count: { select: { questions: true, advisors: true } },
+        },
       });
 
       const total = await prisma.institution.count({ where });

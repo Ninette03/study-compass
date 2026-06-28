@@ -17,14 +17,14 @@ export class QAController {
 
       const { title, body, institutionId, programme, tags } = req.body as {
         title: string;
-        body: string;
+        body?: string;
         institutionId: string;
         programme?: string;
         tags?: string[];
       };
 
-      if (!title || !body || !institutionId) {
-        throw new ValidationError('Title, body, and institution are required');
+      if (!title || !institutionId) {
+        throw new ValidationError('Title and institution are required');
       }
 
       // Verify institution exists
@@ -36,17 +36,32 @@ export class QAController {
         throw new NotFoundError('Institution not found');
       }
 
+      // Upsert tags by name so the frontend can send either names or IDs
+      let tagConnections: { id: string }[] = [];
+      if (tags && tags.length > 0) {
+        const upserted = await Promise.all(
+          tags.map((nameOrId: string) =>
+            prisma.tag.upsert({
+              where: { name: nameOrId },
+              update: {},
+              create: { id: uuidv4(), name: nameOrId },
+            })
+          )
+        );
+        tagConnections = upserted.map(t => ({ id: t.id }));
+      }
+
       // Create question
       const question = await prisma.question.create({
         data: {
           id: uuidv4(),
           userId: req.user.userId,
           title,
-          body,
+          body: body || '',
           institutionId,
           programme: programme || null,
           tags: {
-            connect: tags?.map((tagId: string) => ({ id: tagId })) || [],
+            connect: tagConnections,
           },
         },
         include: {

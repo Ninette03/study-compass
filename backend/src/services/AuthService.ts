@@ -3,6 +3,7 @@ import bcryptjs from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { generateToken, JWTPayload } from '../utils/jwt';
 import { ValidationError, AuthenticationError, ConflictError } from '../utils/errors';
+import { emailService } from './EmailService';
 
 const prisma = new PrismaClient();
 
@@ -85,8 +86,12 @@ export class AuthService {
       role: user.role,
     });
 
-    // TODO: Send email verification link
-    // await emailService.sendVerificationEmail(user.email, user.emailVerificationToken);
+    // Send email verification link
+    if (user.emailVerificationToken) {
+      emailService.sendVerificationEmail(user.email, user.emailVerificationToken).catch(err =>
+        console.error('Failed to send verification email:', err)
+      );
+    }
 
     return {
       user: {
@@ -185,8 +190,10 @@ export class AuthService {
       },
     });
 
-    // TODO: Send reset email with token
-    // await emailService.sendPasswordResetEmail(user.email, resetToken);
+    // Send password reset email
+    emailService.sendPasswordResetEmail(user.email, resetToken).catch(err =>
+      console.error('Failed to send password reset email:', err)
+    );
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {

@@ -1,4 +1,5 @@
 import { PrismaClient, NotificationType } from '@prisma/client';
+import { emailService } from './EmailService';
 
 const prisma = new PrismaClient();
 
@@ -25,6 +26,7 @@ export class NotificationService {
         },
         select: {
           userId: true,
+          user: { select: { email: true } },
         },
       });
 
@@ -44,6 +46,13 @@ export class NotificationService {
       await prisma.notification.createMany({
         data: notifications,
       });
+
+      // Send email to each matched advisor
+      for (const advisor of matchedAdvisors as { userId: string; user: { email: string } }[]) {
+        emailService.sendMatchedQuestionEmail(advisor.user.email, questionTitle, questionId).catch(err =>
+          console.error('Failed to send matched-question email:', err)
+        );
+      }
     } catch (error) {
       console.error('Error notifying matched advisors:', error);
       // Don't throw - notifications failing shouldn't block question creation
@@ -68,6 +77,13 @@ export class NotificationService {
           questionId,
         },
       });
+
+      const student = await prisma.user.findUnique({ where: { id: studentId }, select: { email: true } });
+      if (student) {
+        emailService.sendNewResponseEmail(student.email, advisorName, questionId).catch(err =>
+          console.error('Failed to send new-response email:', err)
+        );
+      }
     } catch (error) {
       console.error('Error notifying new response:', error);
     }
@@ -118,6 +134,13 @@ export class NotificationService {
           message,
         },
       });
+
+      const advisor = await prisma.user.findUnique({ where: { id: advisorId }, select: { email: true } });
+      if (advisor) {
+        emailService.sendVerificationStatusEmail(advisor.email, isApproved, rejectionReason).catch(err =>
+          console.error('Failed to send verification-status email:', err)
+        );
+      }
     } catch (error) {
       console.error('Error notifying verification status:', error);
     }

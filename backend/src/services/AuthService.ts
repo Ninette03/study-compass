@@ -175,6 +175,23 @@ export class AuthService {
     });
   }
 
+  async resendVerificationEmail(email: string): Promise<void> {
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    // Always respond the same way to avoid email enumeration
+    if (!user || user.emailVerified) return;
+
+    const token = uuidv4();
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerificationToken: token },
+    });
+
+    emailService.sendVerificationEmail(user.email, token).catch((err) =>
+      console.error('Failed to resend verification email:', err)
+    );
+  }
+
   async requestPasswordReset(email: string): Promise<void> {
     const user = await prisma.user.findUnique({
       where: { email },

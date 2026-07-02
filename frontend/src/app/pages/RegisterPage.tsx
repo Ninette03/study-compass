@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router';
 import { Eye, EyeOff, BookOpen, Loader2, CheckCircle, User, Star, Shield, GraduationCap } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { TagPill } from '../components/shared/TagPill (1).tsx';
-import { publicApi } from '../api';
+import { publicApi, authApi } from '../api';
 
 type Role = 'student' | 'advisor' | 'admin';
 
@@ -61,6 +61,8 @@ export default function RegisterPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [emailVerificationSent, setEmailVerificationSent] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
   const [institutions, setInstitutions] = useState<{ id: string; name: string; country: string }[]>([]);
   const [allTags, setAllTags] = useState<{ id: string; name: string }[]>([]);
 
@@ -109,6 +111,19 @@ export default function RegisterPage() {
   };
 
   if (emailVerificationSent) {
+    const handleResend = async () => {
+      setResending(true);
+      setResendMessage('');
+      try {
+        await authApi.resendVerification(email);
+        setResendMessage('A new verification link has been sent.');
+      } catch {
+        setResendMessage('Failed to resend. Please try again.');
+      } finally {
+        setResending(false);
+      }
+    };
+
     return (
       <div className="min-h-[calc(100vh-56px)] flex flex-col items-center justify-center px-4 py-12" style={{ backgroundColor: '#F7F7FA' }}>
         <div className="w-full max-w-[480px] bg-white rounded-xl border p-8 text-center" style={{ borderColor: '#DEDEDE' }}>
@@ -119,7 +134,18 @@ export default function RegisterPage() {
           <p className="text-[13px] mb-6" style={{ color: '#5F5E5A' }}>
             We sent a verification link to <strong>{email}</strong>.
           </p>
-          <button className="px-6 py-2.5 rounded-lg border text-[13px] font-medium" style={{ borderColor: '#2C2C6E', color: '#2C2C6E' }}>
+          {resendMessage && (
+            <p className="text-[12px] mb-3" style={{ color: resendMessage.startsWith('Failed') ? '#DC2626' : '#0F6E56' }}>
+              {resendMessage}
+            </p>
+          )}
+          <button
+            onClick={handleResend}
+            disabled={resending}
+            className="px-6 py-2.5 rounded-lg border text-[13px] font-medium flex items-center gap-2 mx-auto disabled:opacity-50"
+            style={{ borderColor: '#2C2C6E', color: '#2C2C6E' }}
+          >
+            {resending && <Loader2 size={14} className="animate-spin" />}
             Resend verification email
           </button>
           <div className="mt-3">

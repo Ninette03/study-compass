@@ -23,6 +23,12 @@ router.post('/login', (req, res, next) => authController.login(req, res, next));
 router.post('/verify-email', (req, res, next) => authController.verifyEmail(req, res, next));
 
 /**
+ * POST /auth/resend-verification
+ * Resend email verification link
+ */
+router.post('/resend-verification', (req, res, next) => authController.resendVerificationEmail(req, res, next));
+
+/**
  * POST /auth/request-password-reset
  * Request password reset link
  */

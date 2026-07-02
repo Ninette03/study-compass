@@ -34,6 +34,8 @@ export const authApi = {
   login: (payload: LoginPayload) => api.post('/auth/login', payload),
   register: (payload: RegisterPayload) => api.post('/auth/register', payload),
   me: () => api.get('/auth/me'),
+  verifyEmail: (token: string) => api.post('/auth/verify-email', { token }),
+  resendVerification: (email: string) => api.post('/auth/resend-verification', { email }),
 };
 
 export const questionApi = {

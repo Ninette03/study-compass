@@ -4,6 +4,7 @@ import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import RegisterPage from './pages/RegisterPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
 import DashboardPage from './pages/DashboardPage';
 import AskPage from './pages/AskPage';
 import BrowseQuestionsPage from './pages/BrowseQuestionsPage';
@@ -24,6 +25,7 @@ export const router = createBrowserRouter([
       { path: 'login', Component: LoginPage },
       { path: 'forgot-password', Component: ForgotPasswordPage },
       { path: 'register', Component: RegisterPage },
+      { path: 'verify-email', Component: VerifyEmailPage },
       { path: 'dashboard', Component: DashboardPage },
       { path: 'ask', Component: AskPage },
       { path: 'questions', Component: BrowseQuestionsPage },

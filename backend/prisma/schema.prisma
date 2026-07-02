@@ -8,6 +8,8 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  // connection_limit and pool_timeout are set via DATABASE_URL query params:
+  // ?connection_limit=25&pool_timeout=30
 }
 
 model User {
@@ -173,6 +175,8 @@ model Question {
   @@index([userId])
   @@index([institutionId])
   @@index([createdAt])
+  @@index([institutionId, createdAt]) // institution question feed
+  @@index([userId, createdAt])        // user's own questions
 }
 
 model Response {
@@ -213,6 +217,8 @@ model Response {
   @@index([sentiment])
   @@index([isHidden])
   @@index([createdAt])
+  @@index([questionId, isHidden, createdAt]) // visible responses for a question
+  @@index([userId, isHidden])               // advisor's visible responses
 }
 
 enum Sentiment {
@@ -293,6 +299,7 @@ model Notification {
   @@index([userId])
   @@index([isRead])
   @@index([createdAt])
+  @@index([userId, isRead, createdAt]) // unread notifications per user
 }
 
 enum NotificationType {

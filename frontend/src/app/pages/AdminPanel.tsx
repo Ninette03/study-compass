@@ -26,12 +26,35 @@ export default function AdminPanel() {
   const [users, setUsers] = useState<any[]>([]);
   const [adminStats, setAdminStats] = useState({ pendingVerifications: 0, flaggedResponses: 0, totalUsers: 0, questionsToday: 0 });
 
+  // Add institution modal
+  const [showAddInstitution, setShowAddInstitution] = useState(false);
+  const [newInst, setNewInst] = useState({ name: '', country: '', website: '' });
+  const [addingInst, setAddingInst] = useState(false);
+  const [addInstError, setAddInstError] = useState('');
+
+  const handleAddInstitution = async () => {
+    if (!newInst.name || !newInst.country) return;
+    setAddingInst(true);
+    setAddInstError('');
+    try {
+      const res = await adminApi.createInstitution({ name: newInst.name, country: newInst.country, website: newInst.website || undefined });
+      setInstitutions(p => [...p, res.data.data]);
+      setNewInst({ name: '', country: '', website: '' });
+      setShowAddInstitution(false);
+      toast.success(`"${res.data.data.name}" added.`);
+    } catch (e: any) {
+      setAddInstError(e?.response?.data?.error?.message ?? 'Failed to add institution.');
+    } finally {
+      setAddingInst(false);
+    }
+  };
+
   useEffect(() => {
     if (!isAuthenticated || currentUser?.role !== 'admin') return;
     adminApi.getStats().then(r => setAdminStats(r.data.data)).catch(() => {});
     profileApi.getVerificationQueue().then(r => setVerifications(r.data.data.verifications ?? [])).catch(() => {});
     moderationApi.getFlags().then(r => setFlags(r.data.data.flags ?? [])).catch(() => {});
-    adminApi.getInstitutions().then(r => setInstitutions(r.data.data.institutions ?? [])).catch(() => {});
+    adminApi.getInstitutions().then(r => setInstitutions(r.data.data.institutions ?? [])).catch(() => { setInstitutions([]); });
     adminApi.getTags().then(r => setAllTags(r.data.data.tags ?? [])).catch(() => {});
     adminApi.getUsers().then(r => setUsers(r.data.data.users ?? [])).catch(() => {});
   }, [isAuthenticated, currentUser?.role]);
@@ -235,10 +258,39 @@ export default function AdminPanel() {
           <div>
             <div className="flex items-center justify-between mb-6">
               <h1 style={{ fontSize: '20px', fontWeight: 500, color: '#1A1A1A' }}>Institutions</h1>
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-medium text-white" style={{ backgroundColor: '#2C2C6E' }}>
+              <button onClick={() => setShowAddInstitution(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-medium text-white" style={{ backgroundColor: '#2C2C6E' }}>
                 <Plus size={14} /> Add institution
               </button>
             </div>
+
+            {showAddInstitution && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
+                <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl" style={{ borderColor: '#DEDEDE' }}>
+                  <h2 className="mb-4" style={{ fontSize: '16px', fontWeight: 500, color: '#1A1A1A' }}>Add institution</h2>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[13px] font-medium mb-1" style={{ color: '#1A1A1A' }}>Name *</label>
+                      <input value={newInst.name} onChange={e => setNewInst(p => ({ ...p, name: e.target.value }))} placeholder="University of..." className="w-full px-3 py-2.5 rounded-lg border text-[13px] outline-none focus:border-[#2C2C6E]" style={{ borderColor: '#DEDEDE' }} />
+                    </div>
+                    <div>
+                      <label className="block text-[13px] font-medium mb-1" style={{ color: '#1A1A1A' }}>Country *</label>
+                      <input value={newInst.country} onChange={e => setNewInst(p => ({ ...p, country: e.target.value }))} placeholder="e.g. Ghana" className="w-full px-3 py-2.5 rounded-lg border text-[13px] outline-none focus:border-[#2C2C6E]" style={{ borderColor: '#DEDEDE' }} />
+                    </div>
+                    <div>
+                      <label className="block text-[13px] font-medium mb-1" style={{ color: '#1A1A1A' }}>Website</label>
+                      <input value={newInst.website} onChange={e => setNewInst(p => ({ ...p, website: e.target.value }))} placeholder="e.g. ug.edu.gh" className="w-full px-3 py-2.5 rounded-lg border text-[13px] outline-none focus:border-[#2C2C6E]" style={{ borderColor: '#DEDEDE' }} />
+                    </div>
+                    {addInstError && <p className="text-[12px]" style={{ color: '#D85A30' }}>{addInstError}</p>}
+                  </div>
+                  <div className="flex gap-3 mt-5">
+                    <button onClick={() => { setShowAddInstitution(false); setAddInstError(''); }} className="flex-1 py-2 rounded-lg border text-[13px]" style={{ borderColor: '#DEDEDE', color: '#5F5E5A' }}>Cancel</button>
+                    <button onClick={handleAddInstitution} disabled={addingInst || !newInst.name || !newInst.country} className="flex-1 py-2 rounded-lg text-[13px] font-medium text-white disabled:opacity-40" style={{ backgroundColor: '#2C2C6E' }}>
+                      {addingInst ? 'Adding…' : 'Add institution'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="bg-white rounded-xl border overflow-hidden" style={{ borderColor: '#DEDEDE' }}>
               <table className="w-full">
                 <thead>
@@ -249,7 +301,13 @@ export default function AdminPanel() {
                   </tr>
                 </thead>
                 <tbody>
-                  {institutions.map(inst => (
+                  {institutions.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-10 text-center text-[13px]" style={{ color: '#888780' }}>
+                        No institutions yet. Click "Add institution" to add one.
+                      </td>
+                    </tr>
+                  ) : institutions.map(inst => (
                     <tr key={inst.id} className="border-b last:border-0 hover:bg-gray-50" style={{ borderColor: '#DEDEDE' }}>
                       <td className="px-4 py-3 text-[13px] font-medium" style={{ color: '#1A1A1A' }}>{inst.name}</td>
                       <td className="px-4 py-3 text-[13px]" style={{ color: '#5F5E5A' }}>{inst.country}</td>

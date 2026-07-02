@@ -62,7 +62,7 @@ export default function AskPage() {
       const questionId = response.data.data.id;
       navigate(`/questions/${questionId}`);
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Unable to post question.');
+      toast.error(error?.response?.data?.error?.message || 'Unable to post question.');
     } finally {
       setSubmitting(false);
     }

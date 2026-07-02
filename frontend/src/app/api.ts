@@ -82,6 +82,8 @@ export const adminApi = {
     api.get('/admin/users', { params }),
   getInstitutions: (params?: { skip?: number; take?: number }) =>
     api.get('/admin/institutions', { params }),
+  createInstitution: (payload: { name: string; country: string; website?: string }) =>
+    api.post('/admin/institutions', payload),
   getTags: (params?: { skip?: number; take?: number }) =>
     api.get('/admin/tags', { params }),
 };

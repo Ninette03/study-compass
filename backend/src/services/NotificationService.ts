@@ -1,7 +1,6 @@
-import { PrismaClient, NotificationType } from '@prisma/client';
+import { NotificationType } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { emailService } from './EmailService';
-
-const prisma = new PrismaClient();
 
 export class NotificationService {
   /**
@@ -47,12 +46,13 @@ export class NotificationService {
         data: notifications,
       });
 
-      // Send email to each matched advisor
-      for (const advisor of matchedAdvisors as { userId: string; user: { email: string } }[]) {
-        emailService.sendMatchedQuestionEmail(advisor.user.email, questionTitle, questionId).catch(err =>
+      // Send emails concurrently (fire-and-forget, errors logged individually)
+      const emailPromises = (matchedAdvisors as { userId: string; user: { email: string } }[]).map((advisor) =>
+        emailService.sendMatchedQuestionEmail(advisor.user.email, questionTitle, questionId).catch((err) =>
           console.error('Failed to send matched-question email:', err)
-        );
-      }
+        )
+      );
+      Promise.all(emailPromises).catch(() => {});
     } catch (error) {
       console.error('Error notifying matched advisors:', error);
       // Don't throw - notifications failing shouldn't block question creation

@@ -1,10 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
+import { prisma } from '../lib/prisma';
 import { notificationService } from '../services/NotificationService';
 import { ValidationError, NotFoundError, AuthorizationError } from '../utils/errors';
-
-const prisma = new PrismaClient();
 
 export class ProfileController {
   /**

@@ -1,11 +1,10 @@
-import { PrismaClient, User, UserRole } from '@prisma/client';
+import { User, UserRole } from '@prisma/client';
 import bcryptjs from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
+import { prisma } from '../lib/prisma';
 import { generateToken, JWTPayload } from '../utils/jwt';
 import { ValidationError, AuthenticationError, ConflictError } from '../utils/errors';
 import { emailService } from './EmailService';
-
-const prisma = new PrismaClient();
 
 export interface RegisterInput {
   fullName: string;
@@ -35,48 +34,55 @@ export class AuthService {
       throw new ValidationError('Password must be at least 8 characters long');
     }
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: input.email },
-    });
-
-    if (existingUser) {
-      throw new ConflictError('Email already registered');
-    }
-
-    // Hash password
+    // Hash password before entering the transaction
     const hashedPassword = await bcryptjs.hash(input.password, 10);
+    const userId = uuidv4();
+    const verificationToken = uuidv4();
 
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        id: uuidv4(),
-        email: input.email,
-        password: hashedPassword,
-        fullName: input.fullName,
-        role: input.role,
-        emailVerificationToken: uuidv4(),
-      },
-    });
+    // Wrap user + profile creation in a single transaction.
+    // The unique constraint on `email` prevents duplicate registrations
+    // even under concurrent requests — no separate existence check needed.
+    let user: User;
+    try {
+      user = await prisma.$transaction(async (tx) => {
+        const created = await tx.user.create({
+          data: {
+            id: userId,
+            email: input.email,
+            password: hashedPassword,
+            fullName: input.fullName,
+            role: input.role,
+            emailVerificationToken: verificationToken,
+          },
+        });
 
-    // Create role-specific profile
-    if (input.role === 'STUDENT') {
-      await prisma.studentProfile.create({
-        data: {
-          userId: user.id,
-          educationLevel: '',
-          countryOfResidence: '',
-        },
+        if (input.role === 'STUDENT') {
+          await tx.studentProfile.create({
+            data: {
+              userId: created.id,
+              educationLevel: '',
+              countryOfResidence: '',
+            },
+          });
+        } else if (input.role === 'ADVISOR') {
+          await tx.advisorProfile.create({
+            data: {
+              userId: created.id,
+              programme: '',
+              yearOfEntry: new Date().getFullYear(),
+              currentStatus: 'current_student',
+            },
+          });
+        }
+
+        return created;
       });
-    } else if (input.role === 'ADVISOR') {
-      await prisma.advisorProfile.create({
-        data: {
-          userId: user.id,
-          programme: '',
-          yearOfEntry: new Date().getFullYear(),
-          currentStatus: 'current_student',
-        },
-      });
+    } catch (err: any) {
+      // Prisma unique constraint violation code
+      if (err?.code === 'P2002') {
+        throw new ConflictError('Email already registered');
+      }
+      throw err;
     }
 
     // Generate token

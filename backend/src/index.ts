@@ -1,9 +1,12 @@
 import express, { Express } from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import 'express-async-errors';
 
 import { config } from './config/env.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { redis } from './lib/redis.js';
+import { createSentimentWorker } from './lib/sentimentQueue.js';
 
 import authRoutes from './routes/auth.js';
 import questionsRoutes from './routes/questions.js';
@@ -15,8 +18,34 @@ import publicRoutes from './routes/public.js';
 
 const app: Express = express();
 
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+// Rate limiters
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many requests, please try again later.' },
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many auth attempts, please try again later.' },
+});
+
+const writeLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many requests, please slow down.' },
+});
+
+app.use(globalLimiter);
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ limit: '1mb', extended: true }));
 
 // CORS
 app.use(
@@ -32,8 +61,8 @@ app.get('/health', (req, res) => {
 });
 
 
-app.use('/auth', authRoutes);
-app.use('/questions', questionsRoutes);
+app.use('/auth', authLimiter, authRoutes);
+app.use('/questions', writeLimiter, questionsRoutes);
 app.use('/profiles', profileRoutes);
 app.use('/moderation', moderationRoutes);
 app.use('/notifications', notificationRoutes);
@@ -46,6 +75,9 @@ app.use(errorHandler);
 
 const PORT = config.server.port;
 
+// Start background worker for sentiment classification
+const sentimentWorker = createSentimentWorker();
+
 const server = app.listen(PORT, () => {
   console.log(`
   Environment: ${config.server.env.padEnd(22)},
@@ -54,20 +86,17 @@ const server = app.listen(PORT, () => {
   `);
 });
 
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  server.close(() => {
+async function shutdown(signal: string) {
+  console.log(`${signal} received, shutting down gracefully`);
+  server.close(async () => {
+    await sentimentWorker.close();
+    await redis.quit();
     console.log('Server closed');
     process.exit(0);
   });
-});
+}
 
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully');
-  server.close(() => {
-    console.log('Server closed');
-    process.exit(0);
-  });
-});
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 export default app;

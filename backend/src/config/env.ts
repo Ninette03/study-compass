@@ -10,6 +10,9 @@ export const config = {
   database: {
     url: process.env.DATABASE_URL || 'postgresql://localhost:5432/study_compass',
   },
+  redis: {
+    url: process.env.REDIS_URL || 'redis://localhost:6379',
+  },
   jwt: {
     secret: process.env.JWT_SECRET || 'your_super_secret_jwt_key_change_this_in_production',
     expiresIn: process.env.JWT_EXPIRATION || '7d',

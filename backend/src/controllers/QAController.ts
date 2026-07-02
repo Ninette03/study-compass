@@ -1,11 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient, FlagReason, Sentiment } from '@prisma/client';
+import { FlagReason, Sentiment } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
+import { prisma } from '../lib/prisma';
+import { sentimentQueue } from '../lib/sentimentQueue';
 import { notificationService } from '../services/NotificationService';
-import { sentimentClassifier } from '../services/SentimentClassifier';
 import { ValidationError, NotFoundError, AuthorizationError } from '../utils/errors';
-
-const prisma = new PrismaClient();
 
 export class QAController {
   /**
@@ -240,8 +239,10 @@ export class QAController {
         },
       });
 
-      // Classify sentiment asynchronously (don't wait for it)
-      this.classifyAndUpdateSentiment(response.id, body);
+      // Enqueue sentiment classification (retried automatically on failure)
+      sentimentQueue.add('classify' as string & {}, { responseId: response.id, text: body }).catch((err) =>
+        console.error('[SentimentQueue] failed to enqueue job:', err)
+      );
 
       // Notify student that new response was posted
       const respondingUser = await prisma.user.findUnique({
@@ -306,95 +307,48 @@ export class QAController {
         throw new NotFoundError('Response not found');
       }
 
-      // Check if user already upvoted
-      const existingUpvote = await prisma.responseUpvote.findUnique({
-        where: {
-          responseId_userId: {
-            responseId,
-            userId: req.user.userId,
-          },
-        },
+      // Atomically toggle the upvote and sync the counter in a single transaction
+      const userId = req.user.userId;
+      const { upvoted } = await prisma.$transaction(async (tx) => {
+        const existing = await tx.responseUpvote.findUnique({
+          where: { responseId_userId: { responseId, userId } },
+        });
+
+        if (existing) {
+          await tx.responseUpvote.delete({
+            where: { responseId_userId: { responseId, userId } },
+          });
+          await tx.response.update({
+            where: { id: responseId },
+            data: { upvoteCount: { decrement: 1 } },
+          });
+          return { upvoted: false };
+        } else {
+          await tx.responseUpvote.create({
+            data: { id: uuidv4(), responseId, userId },
+          });
+          await tx.response.update({
+            where: { id: responseId },
+            data: { upvoteCount: { increment: 1 } },
+          });
+          return { upvoted: true };
+        }
       });
 
-      if (existingUpvote) {
-        // Remove upvote
-        await prisma.responseUpvote.delete({
-          where: {
-            responseId_userId: {
-              responseId,
-              userId: req.user.userId,
-            },
-          },
-        });
-
-        await prisma.response.update({
-          where: { id: responseId },
-          data: { upvoteCount: { decrement: 1 } },
-        });
-
-        res.status(200).json({
-          success: true,
-          message: 'Upvote removed',
-        });
-      } else {
-        // Add upvote
-        await prisma.responseUpvote.create({
-          data: {
-            id: uuidv4(),
-            responseId,
-            userId: req.user.userId,
-          },
-        });
-
-        await prisma.response.update({
-          where: { id: responseId },
-          data: { upvoteCount: { increment: 1 } },
-        });
-
-        // Notify advisor
-        await notificationService.notifyResponseUpvoted(responseId, response.userId);
-
-        res.status(200).json({
-          success: true,
-          message: 'Response upvoted',
-        });
+      if (upvoted) {
+        // Notify outside the transaction — non-critical side effect
+        notificationService.notifyResponseUpvoted(responseId, response.userId).catch(() => {});
       }
+
+      res.status(200).json({
+        success: true,
+        message: upvoted ? 'Response upvoted' : 'Upvote removed',
+      });
     } catch (error) {
       next(error);
     }
   }
 
-  /**
-   * Private helper to classify sentiment
-   */
-  private async classifyAndUpdateSentiment(responseId: string, text: string): Promise<void> {
-    try {
-      const result = await sentimentClassifier.classify(text);
-
-      const shouldAutoFlag = sentimentClassifier.shouldAutoFlag(result.label, result.confidence);
-
-      await prisma.response.update({
-        where: { id: responseId },
-        data: {
-          sentiment: result.label,
-          sentimentConfidence: result.confidence,
-          isAutoFlagged: shouldAutoFlag,
-          flags: shouldAutoFlag
-            ? {
-                create: {
-                  id: uuidv4(),
-                  userId: 'system', // or admin ID
-                  reason: FlagReason.OFFENSIVE,
-                  description: 'Auto-flagged due to high negative sentiment confidence',
-                },
-              }
-            : undefined,
-        },
-      });
-    } catch (error) {
-      console.error('Error classifying sentiment:', error);
-    }
-  }
 }
 
 export const qaController = new QAController();

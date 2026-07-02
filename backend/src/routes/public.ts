@@ -1,8 +1,14 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
+import { cacheGet, cacheSet } from '../lib/redis';
 
 const router = Router();
-const prisma = new PrismaClient();
+
+const TTL = {
+  institutionList: 5 * 60,   // 5 min — changes rarely
+  institutionPage: 2 * 60,   // 2 min — questions/advisors change more often
+  tagList: 10 * 60,          // 10 min — tags almost never change
+};
 
 /**
  * GET /institutions
@@ -11,6 +17,13 @@ const prisma = new PrismaClient();
 router.get('/institutions', async (req, res, next) => {
   try {
     const { skip = 0, take = 100 } = req.query;
+    const cacheKey = `institutions:list:${skip}:${take}`;
+
+    const cached = await cacheGet(cacheKey);
+    if (cached) {
+      res.status(200).json({ success: true, data: cached });
+      return;
+    }
 
     const institutions = await prisma.institution.findMany({
       orderBy: { name: 'asc' },
@@ -20,6 +33,8 @@ router.get('/institutions', async (req, res, next) => {
         _count: { select: { questions: true, advisors: true } },
       },
     });
+
+    await cacheSet(cacheKey, { institutions }, TTL.institutionList);
 
     res.status(200).json({
       success: true,
@@ -36,6 +51,14 @@ router.get('/institutions', async (req, res, next) => {
  */
 router.get('/institutions/:id', async (req, res, next) => {
   try {
+    const cacheKey = `institutions:page:${req.params.id}`;
+
+    const cached = await cacheGet(cacheKey);
+    if (cached) {
+      res.status(200).json({ success: true, data: cached });
+      return;
+    }
+
     const institution = await prisma.institution.findUnique({
       where: { id: req.params.id },
       include: {
@@ -64,6 +87,8 @@ router.get('/institutions/:id', async (req, res, next) => {
       return;
     }
 
+    await cacheSet(cacheKey, institution, TTL.institutionPage);
+
     res.status(200).json({ success: true, data: institution });
   } catch (error) {
     next(error);
@@ -77,12 +102,21 @@ router.get('/institutions/:id', async (req, res, next) => {
 router.get('/tags', async (req, res, next) => {
   try {
     const { skip = 0, take = 100 } = req.query;
+    const cacheKey = `tags:list:${skip}:${take}`;
+
+    const cached = await cacheGet(cacheKey);
+    if (cached) {
+      res.status(200).json({ success: true, data: cached });
+      return;
+    }
 
     const tags = await prisma.tag.findMany({
       orderBy: { name: 'asc' },
       skip: parseInt(String(skip)),
       take: parseInt(String(take)),
     });
+
+    await cacheSet(cacheKey, { tags }, TTL.tagList);
 
     res.status(200).json({
       success: true,
@@ -94,3 +128,5 @@ router.get('/tags', async (req, res, next) => {
 });
 
 export default router;
+
+

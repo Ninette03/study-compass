@@ -1,9 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
+import { prisma } from '../lib/prisma';
+import { cacheDelPattern } from '../lib/redis';
 import { ValidationError, NotFoundError, AuthorizationError } from '../utils/errors';
-
-const prisma = new PrismaClient();
 
 export class AdminController {
   /**
@@ -29,6 +28,8 @@ export class AdminController {
           website: website || null,
         },
       });
+
+      await cacheDelPattern('institutions:*');
 
       res.status(201).json({
         success: true,
@@ -96,6 +97,8 @@ export class AdminController {
           category: category || null,
         },
       });
+
+      await cacheDelPattern('tags:*');
 
       res.status(201).json({
         success: true,

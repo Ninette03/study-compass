@@ -19,16 +19,14 @@ export const errorHandler = (
     return;
   }
 
-  // Log unexpected errors
-  console.error('Unexpected error:', err);
+  // Log the full error server-side (visible in Railway logs, never sent to client)
+  console.error(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`, err);
 
-  // Send generic error response in production
+  // Send a safe message to the client — never expose stack traces or DB internals
   res.status(500).json({
     success: false,
     error: {
-      message: config.server.env === 'production' 
-        ? 'An unexpected error occurred' 
-        : err.message,
+      message: 'An unexpected error occurred',
       statusCode: 500,
     },
   });

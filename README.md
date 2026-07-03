@@ -407,3 +407,5 @@ All endpoints are prefixed with the Railway backend URL.
 | `VITE_BACKEND_URL` | Full URL of the backend API (no trailing slash) |
 
 Deployed app link: <https://peer-guide-two.vercel.app/> 
+Video demo: <https://drive.google.com/file/d/1yNwkRzu2CHXQXwMxLWKZZlHxunLc3qUv/view?usp=sharing>
+Testing results: <https://docs.google.com/document/d/1gPZHGn63OsJ2wut00K-EiUBlTCTfGt7o4edSLldmaWg/edit?usp=sharing>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router';
-import { Share2, ThumbsUp, Flag, CheckCircle, ChevronRight, AlertTriangle, X, Loader2 } from 'lucide-react';
+import { Link, useParams, useNavigate } from 'react-router';
+import { Share2, ThumbsUp, Flag, CheckCircle, ChevronRight, AlertTriangle, X, Loader2, MessageSquare } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { TagPill } from '../components/shared/TagPill (1).tsx';
 import { SentimentBadge } from '../components/shared/SentimentBadge';
@@ -8,7 +8,7 @@ import type { SentimentType } from '../types';
 import { VerifiedBadge } from '../components/shared/VerifiedBadge';
 import { AvatarCircle } from '../components/shared/AvatarCircle (1).tsx';
 import { EmptyState } from '../components/shared/EmptyState (1)';
-import { questionApi } from '../api';
+import { questionApi, messageApi } from '../api';
 import { toast } from 'sonner';
 
 interface Question {
@@ -43,12 +43,30 @@ interface Response {
   createdAt?: string;
 }
 
-function ResponseCard({ r, onUpvote }: { r: Response; onUpvote: (id: string) => void }) {
+function ResponseCard({ r, onUpvote, questionOwnerId, questionId }: { r: Response; onUpvote: (id: string) => void; questionOwnerId?: string; questionId?: string }) {
+  const { currentUser } = useApp();
+  const navigate = useNavigate();
   const [upvoted, setUpvoted] = useState(false);
   const [flagOpen, setFlagOpen] = useState(false);
+  const [startingChat, setStartingChat] = useState(false);
   const borderColor = r.sentiment === 'POSITIVE' ? '#0F6E56' : r.sentiment === 'NEGATIVE' ? '#D85A30' : '#888780';
   const advisorProfile = r.user?.advisorProfile;
   const yearGrad = advisorProfile?.yearOfGraduation ?? new Date().getFullYear();
+  const isQuestionOwner = currentUser?.id === questionOwnerId;
+  const isOwnResponse = currentUser?.id === r.user?.id;
+
+  const handleMessageAdvisor = async () => {
+    if (!r.user?.id || !questionId) return;
+    setStartingChat(true);
+    try {
+      const res = await messageApi.startConversation(questionId, r.user.id);
+      navigate(`/messages/${res.data.data.id}`);
+    } catch {
+      toast.error('Could not start conversation');
+    } finally {
+      setStartingChat(false);
+    }
+  };
 
   const handleUpvote = async () => {
     if (!upvoted) {
@@ -90,7 +108,7 @@ function ResponseCard({ r, onUpvote }: { r: Response; onUpvote: (id: string) => 
           <p className="text-[13px] leading-relaxed mb-3" style={{ color: '#1A1A1A', lineHeight: '1.6' }}>{r.body}</p>
 
           {/* Footer actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <button
               onClick={handleUpvote}
               className={`flex items-center gap-1.5 text-[12px] px-2.5 py-1.5 rounded-lg border transition-colors ${upvoted ? 'border-[#0F6E56] text-[#0F6E56] bg-[#E1F5EE]' : ''}`}
@@ -99,6 +117,17 @@ function ResponseCard({ r, onUpvote }: { r: Response; onUpvote: (id: string) => 
               <ThumbsUp size={13} fill={upvoted ? 'currentColor' : 'none'} />
               {r.upvoteCount + (upvoted ? 1 : 0)}
             </button>
+            {isQuestionOwner && !isOwnResponse && (
+              <button
+                onClick={handleMessageAdvisor}
+                disabled={startingChat}
+                className="flex items-center gap-1.5 text-[12px] px-2.5 py-1.5 rounded-lg border transition-colors hover:border-[#2C2C6E] hover:text-[#2C2C6E] disabled:opacity-50"
+                style={{ borderColor: '#DEDEDE', color: '#5F5E5A' }}
+              >
+                {startingChat ? <Loader2 size={12} className="animate-spin" /> : <MessageSquare size={12} />}
+                Message advisor
+              </button>
+            )}
             <div className="relative">
               <button onClick={() => setFlagOpen(v => !v)} className="flex items-center gap-1 text-[12px] px-2 py-1.5 rounded-lg border transition-colors hover:text-red-500" style={{ borderColor: '#DEDEDE', color: '#888780' }}>
                 <Flag size={12} />
@@ -341,7 +370,7 @@ export default function QuestionThreadPage() {
 
             <div className="space-y-3">
               {sorted.map(r => (
-                <ResponseCard key={r.id} r={r} onUpvote={() => setRefreshKey(k => k + 1)} />
+                <ResponseCard key={r.id} r={r} onUpvote={() => setRefreshKey(k => k + 1)} questionOwnerId={question.user?.id} questionId={question.id} />
               ))}
             </div>
           </div>

@@ -13,6 +13,8 @@ import AdminPanel from './pages/AdminPanel';
 import ProfilePage from './pages/ProfilePage';
 import InstitutionPage from './pages/InstitutionPage';
 import NotificationsPage from './pages/NotificationsPage';
+import MessagesPage from './pages/MessagesPage';
+import ConversationPage from './pages/ConversationPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ForbiddenPage from './pages/ForbiddenPage';
 
@@ -34,8 +36,11 @@ export const router = createBrowserRouter([
       { path: 'profile/:userId', Component: ProfilePage },
       { path: 'institutions/:id', Component: InstitutionPage },
       { path: 'notifications', Component: NotificationsPage },
+      { path: 'messages', Component: MessagesPage },
+      { path: 'messages/:id', Component: ConversationPage },
       { path: '403', Component: ForbiddenPage },
       { path: '*', Component: NotFoundPage },
     ],
   },
 ]);
+

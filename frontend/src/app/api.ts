@@ -111,3 +111,16 @@ export const moderationApi = {
   unhideResponse: (responseId: string) => api.post(`/moderation/responses/${responseId}/unhide`),
   resolveFlag: (flagId: string) => api.post(`/moderation/flags/${flagId}/resolve`),
 };
+
+export const messageApi = {
+  startConversation: (questionId: string, advisorId: string) =>
+    api.post('/messages/conversations', { questionId, advisorId }),
+  listConversations: () =>
+    api.get('/messages/conversations'),
+  getConversation: (id: string) =>
+    api.get(`/messages/conversations/${id}`),
+  sendMessage: (conversationId: string, body: string) =>
+    api.post(`/messages/conversations/${conversationId}/messages`, { body }),
+  unreadCount: () =>
+    api.get('/messages/unread-count'),
+};

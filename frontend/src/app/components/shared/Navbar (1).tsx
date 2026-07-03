@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { Bell, Menu, X, BookOpen, ChevronDown } from 'lucide-react';
+import { Bell, Menu, X, BookOpen, ChevronDown, MessageSquare } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { AvatarCircle } from './AvatarCircle (1).tsx';
-import { notificationApi } from '../../api';
+import { notificationApi, messageApi } from '../../api';
 
 export function Navbar() {
   const { currentUser, isAuthenticated, logout } = useApp();
@@ -13,6 +13,7 @@ export function Navbar() {
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [notifications, setNotifications] = useState<{ id: string; message: string; isRead: boolean; timeAgo: string }[]>([]);
   const [unread, setUnread] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -20,6 +21,9 @@ export function Navbar() {
       const notifs = res.data.data.notifications ?? [];
       setNotifications(notifs);
       setUnread(res.data.data.unreadCount ?? 0);
+    }).catch(() => {});
+    messageApi.unreadCount().then(res => {
+      setUnreadMessages(res.data.data.unreadCount ?? 0);
     }).catch(() => {});
   }, [isAuthenticated]);
 
@@ -47,6 +51,21 @@ export function Navbar() {
         <div className="flex items-center gap-2">
           {isAuthenticated && currentUser ? (
             <>
+              {/* Messages icon */}
+              <Link
+                to="/messages"
+                className="relative p-2 text-white/80 hover:text-white transition-colors"
+                aria-label="Messages"
+                onClick={() => { setBellOpen(false); setAvatarOpen(false); }}
+              >
+                <MessageSquare size={18} />
+                {unreadMessages > 0 && (
+                  <span className="absolute top-1 right-1 w-4 h-4 rounded-full text-[9px] flex items-center justify-center font-medium text-white" style={{ backgroundColor: '#D85A30' }}>
+                    {unreadMessages}
+                  </span>
+                )}
+              </Link>
+
               {/* Notification bell */}
               <div className="relative">
                 <button

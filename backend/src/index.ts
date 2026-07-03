@@ -15,6 +15,7 @@ import moderationRoutes from './routes/moderation.js';
 import notificationRoutes from './routes/notifications.js';
 import adminRoutes from './routes/admin.js';
 import publicRoutes from './routes/public.js';
+import messageRoutes from './routes/messages.js';
 
 const app: Express = express();
 
@@ -66,6 +67,7 @@ app.use('/questions', writeLimiter, questionsRoutes);
 app.use('/profiles', profileRoutes);
 app.use('/moderation', moderationRoutes);
 app.use('/notifications', notificationRoutes);
+app.use('/messages', messageRoutes);
 app.use('/admin', adminRoutes);
 app.use('/', publicRoutes);
 

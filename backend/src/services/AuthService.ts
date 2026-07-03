@@ -133,10 +133,9 @@ export class AuthService {
       throw new AuthenticationError('Invalid email or password');
     }
 
-    // Check if email is verified
-    if (!user.emailVerified) {
-      throw new AuthenticationError('Please verify your email before logging in');
-    }
+    // Allow login regardless of email verification status.
+    // The emailVerified flag is returned in the token payload so the frontend
+    // can prompt unverified users to verify without blocking them entirely.
 
     // Generate token
     const token = generateToken({

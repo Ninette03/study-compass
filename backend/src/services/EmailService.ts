@@ -21,6 +21,10 @@ class EmailService {
   }
 
   async sendVerificationEmail(to: string, token: string): Promise<void> {
+    if (!config.frontend.url) {
+      console.error('[EmailService] FRONTEND_URL is not set — verification email not sent');
+      return;
+    }
     const link = `${config.frontend.url}/verify-email?token=${token}`;
     await this.transporter.sendMail({
       from: this.from,
@@ -36,6 +40,10 @@ class EmailService {
   }
 
   async sendPasswordResetEmail(to: string, token: string): Promise<void> {
+    if (!config.frontend.url) {
+      console.error('[EmailService] FRONTEND_URL is not set — password reset email not sent');
+      return;
+    }
     const link = `${config.frontend.url}/reset-password?token=${token}`;
     await this.transporter.sendMail({
       from: this.from,

@@ -26,7 +26,7 @@ export const config = {
     },
   },
   frontend: {
-    url: process.env.FRONTEND_URL || 'http://localhost:3000',
+    url: process.env.FRONTEND_URL || '',
   },
   huggingface: {
     apiKey: process.env.HUGGINGFACE_API_KEY || '',

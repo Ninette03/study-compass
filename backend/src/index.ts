@@ -18,6 +18,10 @@ import publicRoutes from './routes/public.js';
 
 const app: Express = express();
 
+// Trust Railway's reverse proxy so express-rate-limit reads the real client IP
+// from X-Forwarded-For instead of throwing ERR_ERL_UNEXPECTED_X_FORWARDED_FOR
+app.set('trust proxy', 1);
+
 // CORS — must come before all other middleware so OPTIONS preflight is handled first.
 // withCredentials is not used (auth via Authorization header), so wildcard origin is safe.
 app.use(cors({ origin: '*', methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization'] }));

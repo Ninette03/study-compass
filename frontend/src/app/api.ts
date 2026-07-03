@@ -2,12 +2,18 @@ import axios from 'axios';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
+if (!BACKEND_URL) {
+  throw new Error(
+    '[api] VITE_BACKEND_URL is not set. ' +
+    'Add it to your .env file (local) or Vercel Environment Variables (production).'
+  );
+}
+
 export const api = axios.create({
   baseURL: BACKEND_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,
 });
 
 export function setAuthToken(token: string | null) {

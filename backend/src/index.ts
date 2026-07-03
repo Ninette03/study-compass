@@ -18,6 +18,24 @@ import publicRoutes from './routes/public.js';
 
 const app: Express = express();
 
+const allowedOrigins = [
+  config.frontend.url,
+].filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (server-to-server, curl, mobile apps)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error(`CORS: origin ${origin} not allowed`));
+    },
+    credentials: true,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
+
 // Rate limiters
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -46,14 +64,6 @@ const writeLimiter = rateLimit({
 app.use(globalLimiter);
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ limit: '1mb', extended: true }));
-
-// CORS
-app.use(
-  cors({
-    origin: config.frontend.url,
-    credentials: true,
-  })
-);
 
 // Health check
 app.get('/health', (req, res) => {

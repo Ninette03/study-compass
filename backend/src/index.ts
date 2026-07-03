@@ -18,23 +18,9 @@ import publicRoutes from './routes/public.js';
 
 const app: Express = express();
 
-const allowedOrigins = [
-  config.frontend.url,
-].filter(Boolean);
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (server-to-server, curl, mobile apps)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error(`CORS: origin ${origin} not allowed`));
-    },
-    credentials: true,
-    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  })
-);
+// CORS — must come before all other middleware so OPTIONS preflight is handled first.
+// withCredentials is not used (auth via Authorization header), so wildcard origin is safe.
+app.use(cors({ origin: '*', methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization'] }));
 
 // Rate limiters
 const globalLimiter = rateLimit({

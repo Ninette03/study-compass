@@ -11,21 +11,60 @@ export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
-  const [notifications, setNotifications] = useState<{ id: string; message: string; isRead: boolean; timeAgo: string }[]>([]);
+  const [notifications, setNotifications] = useState<{ id: string; title: string; message: string; type: string; isRead: boolean; timeAgo: string; questionId?: string }[]>([]);
   const [unread, setUnread] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
 
-  useEffect(() => {
+  const fetchNotifications = () => {
     if (!isAuthenticated) return;
     notificationApi.getUnreadNotifications().then(res => {
-      const notifs = res.data.data.notifications ?? [];
-      setNotifications(notifs);
+      setNotifications(res.data.data.notifications ?? []);
       setUnread(res.data.data.unreadCount ?? 0);
     }).catch(() => {});
-    messageApi.unreadCount().then(res => {
-      setUnreadMessages(res.data.data.unreadCount ?? 0);
-    }).catch(() => {});
-  }, [isAuthenticated]);
+    messageApi.unreadCount().then(res => setUnreadMessages(res.data.data.unreadCount ?? 0)).catch(() => {});
+  };
+
+  useEffect(() => { fetchNotifications(); }, [isAuthenticated]);
+
+  const openBell = () => {
+    setBellOpen(v => {
+      if (!v) {
+        // Mark all as read when opening the dropdown
+        notificationApi.markAllAsRead().then(() => {
+          setUnread(0);
+          setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        }).catch(() => {});
+      }
+      return !v;
+    });
+    setAvatarOpen(false);
+  };
+
+  const notifTypeLabel: Record<string, string> = {
+    MATCHED_QUESTION: '📌 New question match',
+    NEW_RESPONSE: '💬 New response',
+    RESPONSE_UPVOTED: '👍 Upvote received',
+    VERIFICATION_APPROVED: '✅ Verification approved',
+    VERIFICATION_REJECTED: '❌ Verification rejected',
+    AUTO_FLAG_RESOLVED: '🔍 Flag resolved',
+    RESPONSE_HIDDEN: '🚫 Response hidden',
+    PRIVATE_MESSAGE: '📩 New message',
+  };
+
+  const avatarMenuItems = currentUser?.role === 'admin'
+    ? [
+        { label: 'Admin Panel', path: '/admin' },
+        { label: 'My Profile', path: `/profile/${currentUser.id}` },
+      ]
+    : currentUser?.role === 'advisor'
+    ? [
+        { label: 'My Profile', path: `/profile/${currentUser?.id}` },
+        { label: 'Dashboard', path: '/dashboard' },
+      ]
+    : [
+        { label: 'My Profile', path: `/profile/${currentUser?.id}` },
+        { label: 'My Questions', path: '/dashboard' },
+      ];
 
   return (
     <nav className="sticky top-0 z-50 w-full" style={{ backgroundColor: '#2C2C6E' }}>
@@ -41,7 +80,7 @@ export function Navbar() {
         {/* Desktop nav links */}
         <div className="hidden md:flex items-center gap-6">
           <Link to="/questions" className="text-white/80 hover:text-white text-[13px] transition-colors">Browse questions</Link>
-          <Link to="/institutions/1" className="text-white/80 hover:text-white text-[13px] transition-colors">Institutions</Link>
+          <Link to="/institutions" className="text-white/80 hover:text-white text-[13px] transition-colors">Institutions</Link>
           {!isAuthenticated && (
             <Link to="/register" className="text-white/80 hover:text-white text-[13px] transition-colors">Become an advisor</Link>
           )}
@@ -69,7 +108,7 @@ export function Navbar() {
               {/* Notification bell */}
               <div className="relative">
                 <button
-                  onClick={() => { setBellOpen(v => !v); setAvatarOpen(false); }}
+                  onClick={openBell}
                   className="relative p-2 text-white/80 hover:text-white transition-colors"
                   aria-label="Notifications"
                 >
@@ -87,16 +126,37 @@ export function Navbar() {
                       <span className="text-[13px] font-medium" style={{ color: '#1A1A1A' }}>Notifications</span>
                       <Link to="/notifications" onClick={() => setBellOpen(false)} className="text-[12px] hover:underline" style={{ color: '#2C2C6E' }}>See all</Link>
                     </div>
-                    <div className="max-h-96 overflow-y-auto">
+                    <div className="max-h-72 overflow-y-auto">
+                      {notifications.length === 0 && (
+                        <p className="px-4 py-6 text-center text-[12px]" style={{ color: '#888780' }}>No notifications yet</p>
+                      )}
                       {notifications.slice(0, 5).map(n => (
-                        <div key={n.id} className={`px-4 py-3 border-b last:border-0 ${!n.isRead ? 'bg-[#EEEDFE]/30' : ''}`} style={{ borderColor: '#DEDEDE' }}>
-                          <p className={`text-[12px] leading-relaxed ${!n.isRead ? 'font-medium' : ''}`} style={{ color: '#1A1A1A' }}>{n.message}</p>
-                          <span className="text-[11px]" style={{ color: '#888780' }}>{n.timeAgo}</span>
+                        <div
+                          key={n.id}
+                          className={`px-4 py-3 border-b last:border-0 ${!n.isRead ? 'bg-[#EEEDFE]/30' : ''}`}
+                          style={{ borderColor: '#DEDEDE' }}
+                        >
+                          {notifTypeLabel[n.type] && (
+                            <p className="text-[10px] mb-0.5 font-medium" style={{ color: '#888780' }}>
+                              {notifTypeLabel[n.type]}
+                            </p>
+                          )}
+                          <p className={`text-[12px] leading-relaxed ${!n.isRead ? 'font-medium' : ''}`} style={{ color: '#1A1A1A' }}>
+                            {n.message}
+                          </p>
+                          {n.questionId && (
+                            <Link
+                              to={`/questions/${n.questionId}`}
+                              onClick={() => setBellOpen(false)}
+                              className="text-[11px] hover:underline mt-0.5 inline-block"
+                              style={{ color: '#2C2C6E' }}
+                            >
+                              View question →
+                            </Link>
+                          )}
+                          <span className="text-[11px] block mt-0.5" style={{ color: '#888780' }}>{n.timeAgo}</span>
                         </div>
                       ))}
-                    </div>
-                    <div className="px-4 py-2.5 border-t" style={{ borderColor: '#DEDEDE' }}>
-                      <button className="text-[12px] hover:underline" style={{ color: '#2C2C6E' }}>Mark all read</button>
                     </div>
                   </div>
                 )}
@@ -115,14 +175,10 @@ export function Navbar() {
                 {avatarOpen && (
                   <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border overflow-hidden z-50" style={{ borderColor: '#DEDEDE' }}>
                     <div className="px-4 py-3 border-b" style={{ borderColor: '#DEDEDE' }}>
-                      <p className="text-[13px] font-medium" style={{ color: '#1A1A1A' }}>{currentUser.name}</p>
+                      <p className="text-[13px] font-medium truncate" style={{ color: '#1A1A1A' }}>{currentUser.name}</p>
                       <p className="text-[11px] capitalize" style={{ color: '#888780' }}>{currentUser.role}</p>
                     </div>
-                    {[
-                      { label: 'My Profile', path: `/profile/${currentUser.id}` },
-                      { label: 'My Questions', path: '/dashboard' },
-                      { label: 'Settings', path: `/profile/${currentUser.id}` },
-                    ].map(item => (
+                    {avatarMenuItems.map(item => (
                       <Link
                         key={item.label}
                         to={item.path}
@@ -133,13 +189,12 @@ export function Navbar() {
                         {item.label}
                       </Link>
                     ))}
-                    {currentUser.role === 'admin' && (
-                      <Link to="/admin" onClick={() => setAvatarOpen(false)} className="block px-4 py-2.5 text-[13px] hover:bg-gray-50 transition-colors" style={{ color: '#1A1A1A' }}>
-                        Admin Panel
-                      </Link>
-                    )}
                     <div className="border-t" style={{ borderColor: '#DEDEDE' }}>
-                      <button onClick={() => { logout(); setAvatarOpen(false); navigate('/'); }} className="block w-full text-left px-4 py-2.5 text-[13px] hover:bg-gray-50 transition-colors" style={{ color: '#D85A30' }}>
+                      <button
+                        onClick={() => { logout(); setAvatarOpen(false); navigate('/'); }}
+                        className="block w-full text-left px-4 py-2.5 text-[13px] hover:bg-gray-50 transition-colors"
+                        style={{ color: '#D85A30' }}
+                      >
                         Log out
                       </button>
                     </div>
@@ -168,29 +223,31 @@ export function Navbar() {
       {/* Mobile menu */}
       {menuOpen && (
         <div className="md:hidden bg-[#1e1e52] border-t border-white/10">
-          <div className="px-4 py-3 flex flex-col gap-3">
-            <Link to="/questions" onClick={() => setMenuOpen(false)} className="text-white/80 text-[13px] py-1">Browse questions</Link>
-            <Link to="/institutions/1" onClick={() => setMenuOpen(false)} className="text-white/80 text-[13px] py-1">Institutions</Link>
-            {!isAuthenticated ? (
+          <div className="px-4 py-3 flex flex-col gap-1">
+            <Link to="/questions" onClick={() => setMenuOpen(false)} className="text-white/80 text-[13px] py-2 border-b border-white/10">Browse questions</Link>
+            <Link to="/institutions" onClick={() => setMenuOpen(false)} className="text-white/80 text-[13px] py-2 border-b border-white/10">Institutions</Link>
+            {isAuthenticated ? (
               <>
-                <Link to="/login" onClick={() => setMenuOpen(false)} className="text-white/80 text-[13px] py-1">Log in</Link>
-                <Link to="/register" onClick={() => setMenuOpen(false)} className="text-white/80 text-[13px] py-1">Sign up</Link>
+                <Link to="/dashboard" onClick={() => setMenuOpen(false)} className="text-white/80 text-[13px] py-2 border-b border-white/10">Dashboard</Link>
+                <Link to="/messages" onClick={() => setMenuOpen(false)} className="text-white/80 text-[13px] py-2 border-b border-white/10">Messages</Link>
+                <Link to="/notifications" onClick={() => setMenuOpen(false)} className="text-white/80 text-[13px] py-2 border-b border-white/10">Notifications</Link>
+                {currentUser?.role === 'admin' && (
+                  <Link to="/admin" onClick={() => setMenuOpen(false)} className="text-white/80 text-[13px] py-2 border-b border-white/10">Admin Panel</Link>
+                )}
+                <button onClick={() => { logout(); setMenuOpen(false); navigate('/'); }} className="text-left text-[13px] py-2" style={{ color: '#D85A30' }}>
+                  Log out
+                </button>
               </>
             ) : (
               <>
-                <Link to="/dashboard" onClick={() => setMenuOpen(false)} className="text-white/80 text-[13px] py-1">Dashboard</Link>
-                <Link to="/notifications" onClick={() => setMenuOpen(false)} className="text-white/80 text-[13px] py-1">Notifications</Link>
-                <button onClick={() => { logout(); setMenuOpen(false); navigate('/'); }} className="text-left text-[13px] py-1" style={{ color: '#D85A30' }}>Log out</button>
+                <Link to="/login" onClick={() => setMenuOpen(false)} className="text-white/80 text-[13px] py-2 border-b border-white/10">Log in</Link>
+                <Link to="/register" onClick={() => setMenuOpen(false)} className="text-white/80 text-[13px] py-2">Sign up</Link>
               </>
             )}
           </div>
         </div>
       )}
-
-      {/* Click outside overlay */}
-      {(bellOpen || avatarOpen) && (
-        <div className="fixed inset-0 z-40" onClick={() => { setBellOpen(false); setAvatarOpen(false); }} />
-      )}
     </nav>
   );
 }
+

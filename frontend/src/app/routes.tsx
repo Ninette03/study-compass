@@ -15,6 +15,7 @@ import InstitutionPage from './pages/InstitutionPage';
 import NotificationsPage from './pages/NotificationsPage';
 import MessagesPage from './pages/MessagesPage';
 import ConversationPage from './pages/ConversationPage';
+import InstitutionsListPage from './pages/InstitutionsListPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ForbiddenPage from './pages/ForbiddenPage';
 
@@ -34,6 +35,7 @@ export const router = createBrowserRouter([
       { path: 'questions/:id', Component: QuestionThreadPage },
       { path: 'admin', Component: AdminPanel },
       { path: 'profile/:userId', Component: ProfilePage },
+      { path: 'institutions', Component: InstitutionsListPage },
       { path: 'institutions/:id', Component: InstitutionPage },
       { path: 'notifications', Component: NotificationsPage },
       { path: 'messages', Component: MessagesPage },

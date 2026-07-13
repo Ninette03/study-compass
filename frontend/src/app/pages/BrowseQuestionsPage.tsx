@@ -94,6 +94,8 @@ export default function BrowseQuestionsPage() {
         setLoading(true);
         const response = await questionApi.getQuestions({
           title: search || undefined,
+          // When one institution is selected send it to the API; when multiple,
+          // fetch all and filter client-side below.
           institutionId: selectedInstitutions.length === 1 ? selectedInstitutions[0] : undefined,
         });
         setQuestions(response.data.data.questions || []);
@@ -111,11 +113,13 @@ export default function BrowseQuestionsPage() {
 
   const filtered = useMemo(() => {
     let result = [...questions];
+    // Client-side institution filter for multi-select
+    if (selectedInstitutions.length > 1) result = result.filter(q => selectedInstitutions.includes(q.institutionId));
     if (selectedTags.length) result = result.filter(q => q.tags.some(t => selectedTags.includes(t.name)));
     if (sortOrder === 'Most responses') result.sort((a, b) => (b.responses?.length ?? 0) - (a.responses?.length ?? 0));
     else if (sortOrder === 'Unanswered first') result.sort((a, b) => ((a.responses?.length ?? 0) ? 1 : 0) - ((b.responses?.length ?? 0) ? 1 : 0));
     return result;
-  }, [questions, selectedTags, sortOrder]);
+  }, [questions, selectedInstitutions, selectedTags, sortOrder]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -212,7 +216,7 @@ export default function BrowseQuestionsPage() {
         />
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex flex-col md:flex-row gap-6">
         {/* Sidebar — desktop */}
         <aside className="hidden lg:block w-64 flex-shrink-0">
           <div className="bg-white rounded-xl border p-4 sticky top-20" style={{ borderColor: '#DEDEDE' }}>

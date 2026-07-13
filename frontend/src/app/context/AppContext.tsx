@@ -75,8 +75,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setAuthToken(token);
         const response = await authApi.me();
         setCurrentUser(normalizeUser(response.data.data));
-      } catch {
-        logout();
+      } catch (err: any) {
+        // Only clear the session for genuine auth failures (invalid/expired token).
+        // Network errors, 5xx, etc. should NOT log the user out.
+        if (err?.response?.status === 401 || err?.response?.status === 403) {
+          logout();
+        } else {
+          // Token may still be valid — restore it even if /me failed
+          setAuthToken(token);
+        }
       }
     };
 

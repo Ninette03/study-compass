@@ -71,7 +71,7 @@ function ResponseCard({ r, onUpvote, questionOwnerId, questionId }: { r: Respons
   const handleUpvote = async () => {
     if (!upvoted) {
       try {
-        await questionApi.upvoteResponse(r.id);
+        await questionApi.upvoteResponse(questionId!, r.id);
         setUpvoted(true);
         onUpvote(r.id);
       } catch (err) {
@@ -340,7 +340,7 @@ export default function QuestionThreadPage() {
               </div>
             </div>
 
-            {isAuthenticated && (
+            {isAuthenticated && currentUser?.id !== question.user?.id && (
               <button
                 onClick={() => setShowResponseModal(true)}
                 className="px-4 py-2 rounded-lg text-[13px] font-medium text-white transition-colors"
@@ -377,7 +377,7 @@ export default function QuestionThreadPage() {
         ) : (
           <div className="bg-white rounded-lg border p-12 text-center" style={{ borderColor: '#DEDEDE' }}>
             <p className="text-[14px]" style={{ color: '#5F5E5A' }}>No responses yet. Be the first to help this person!</p>
-            {isAuthenticated && (
+            {isAuthenticated && currentUser?.id !== question.user?.id && (
               <button
                 onClick={() => setShowResponseModal(true)}
                 className="mt-4 px-4 py-2 rounded-lg text-[13px] font-medium text-white"

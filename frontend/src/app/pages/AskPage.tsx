@@ -87,7 +87,7 @@ export default function AskPage() {
     <div className="max-w-5xl mx-auto px-4 py-8">
       <h1 className="mb-6" style={{ fontSize: '24px', fontWeight: 500, color: '#1A1A1A' }}>Ask a question</h1>
 
-      <div className="flex gap-6">
+      <div className="flex flex-col md:flex-row gap-6">
         {/* Main form */}
         <form onSubmit={handleSubmit} className="flex-1 space-y-5">
           {/* Title */}
@@ -96,12 +96,12 @@ export default function AskPage() {
             <div className="relative">
               <input
                 value={title}
-                onChange={e => setTitle(e.target.value.slice(0, 120))}
+                onChange={e => setTitle(e.target.value.slice(0, 300))}
                 placeholder="What do you want to know?"
                 className="w-full px-3 py-2.5 rounded-lg border text-[13px] outline-none focus:border-[#2C2C6E] transition-colors"
                 style={{ borderColor: '#DEDEDE' }}
               />
-              <span className="absolute right-3 bottom-2 text-[11px]" style={{ color: '#888780' }}>{title.length}/120</span>
+              <span className="absolute right-3 bottom-2 text-[11px]" style={{ color: '#888780' }}>{title.length}/300</span>
             </div>
           </div>
 
@@ -112,9 +112,9 @@ export default function AskPage() {
               value={body}
               onChange={e => setBody(e.target.value)}
               placeholder="Give context — the more detail you provide, the better the responses."
-              rows={4}
+              rows={6}
               className="w-full px-3 py-2.5 rounded-lg border text-[13px] outline-none focus:border-[#2C2C6E] transition-colors resize-y"
-              style={{ borderColor: '#DEDEDE', minHeight: '80px' }}
+              style={{ borderColor: '#DEDEDE', minHeight: '120px' }}
             />
           </div>
 

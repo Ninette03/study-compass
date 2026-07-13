@@ -18,8 +18,8 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await loginWithCredentials({ email, password });
-      navigate('/dashboard');
+      const user = await loginWithCredentials({ email, password });
+      navigate(user.role === 'admin' ? '/admin' : '/dashboard');
     } catch (err: any) {
       setError(err?.response?.data?.error?.message || err?.message || 'Incorrect email or password.');
     } finally {

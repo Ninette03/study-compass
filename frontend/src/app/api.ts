@@ -53,8 +53,8 @@ export const questionApi = {
     api.get(`/questions/${id}`, { params: sentimentFilter ? { sentimentFilter } : undefined }),
   createResponse: (questionId: string, payload: { body: string; programme?: string; yearAttended?: number; whatWorkedWell?: string; whatCouldBeBetter?: string; wouldRecommend?: 'yes' | 'no' | 'it_depends' }) =>
     api.post(`/questions/${questionId}/responses`, { ...payload, questionId }),
-  upvoteResponse: (responseId: string) =>
-    api.post(`/questions/${responseId}/upvote`),
+  upvoteResponse: (questionId: string, responseId: string) =>
+    api.post(`/questions/${questionId}/responses/${responseId}/upvote`),
 };
 
 export const profileApi = {

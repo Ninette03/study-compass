@@ -17,7 +17,7 @@ class EmailService {
   }
 
   private get from() {
-    return `"StudyCompass" <${config.email.smtp.user}>`;
+    return `"PeerGuide" <${config.email.smtp.user}>`;
   }
 
   async sendVerificationEmail(to: string, token: string): Promise<void> {
@@ -29,9 +29,9 @@ class EmailService {
     await this.transporter.sendMail({
       from: this.from,
       to,
-      subject: 'Verify your StudyCompass account',
+      subject: 'Verify your PeerGuide account',
       html: `
-        <p>Welcome to StudyCompass!</p>
+        <p>Welcome to PeerGuide!</p>
         <p>Click the link below to verify your email address:</p>
         <p><a href="${link}">${link}</a></p>
         <p>This link does not expire.</p>
@@ -48,7 +48,7 @@ class EmailService {
     await this.transporter.sendMail({
       from: this.from,
       to,
-      subject: 'Reset your StudyCompass password',
+      subject: 'Reset your PeerGuide password',
       html: `
         <p>We received a request to reset your password.</p>
         <p>Click the link below to choose a new password (valid for 30 minutes):</p>
@@ -87,8 +87,8 @@ class EmailService {
 
   async sendVerificationStatusEmail(to: string, isApproved: boolean, rejectionReason?: string): Promise<void> {
     const subject = isApproved
-      ? 'Your StudyCompass advisor profile has been verified'
-      : 'Your StudyCompass advisor verification was rejected';
+      ? 'Your PeerGuide advisor profile has been verified'
+      : 'Your PeerGuide advisor verification was rejected';
     const body = isApproved
       ? '<p>Congratulations! Your advisor profile has been verified. You can now respond to student questions.</p>'
       : `<p>Your advisor verification was not approved.</p><p>Reason: ${rejectionReason || 'Please review your profile and try again.'}</p>`;

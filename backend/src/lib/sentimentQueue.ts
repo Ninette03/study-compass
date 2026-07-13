@@ -50,7 +50,7 @@ export function createSentimentWorker(): Worker<SentimentJobData> {
                 create: {
                   id: uuidv4(),
                   userId: 'system',
-                  reason: FlagReason.OFFENSIVE,
+                  reason: FlagReason.BIASED,
                   description: 'Auto-flagged due to high negative sentiment confidence',
                 },
               }

@@ -252,8 +252,8 @@ model Flag {
   responseId String
   response  Response  @relation(fields: [responseId], references: [id], onDelete: Cascade)
   
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   reason    FlagReason
   description String?
@@ -279,6 +279,7 @@ enum FlagReason {
   OUTDATED
   OFFENSIVE
   SPAM
+  AUTO_NEGATIVE
 }
 
 model Notification {

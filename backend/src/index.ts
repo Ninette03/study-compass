@@ -82,7 +82,14 @@ app.use(errorHandler);
 const PORT = config.server.port;
 
 // Start background worker for sentiment classification
-const sentimentWorker = createSentimentWorker();
+// Start background worker for sentiment classification
+let sentimentWorker: any = null;
+try {
+  sentimentWorker = createSentimentWorker();
+  console.log('[SentimentWorker] started successfully');
+} catch (err: any) {
+  console.error('[SentimentWorker] failed to start — sentiment classification disabled:', err.message);
+}
 
 const server = app.listen(PORT, () => {
   console.log(`
@@ -95,7 +102,9 @@ const server = app.listen(PORT, () => {
 async function shutdown(signal: string) {
   console.log(`${signal} received, shutting down gracefully`);
   server.close(async () => {
-    await sentimentWorker.close();
+    if (sentimentWorker) {
+      await sentimentWorker.close();
+    }
     await redis.quit();
     console.log('Server closed');
     process.exit(0);

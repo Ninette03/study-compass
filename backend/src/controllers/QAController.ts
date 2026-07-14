@@ -240,9 +240,13 @@ export class QAController {
       });
 
       // Enqueue sentiment classification (retried automatically on failure)
-      sentimentQueue.add('classify' as string & {}, { responseId: response.id, text: body }).catch((err) =>
+      if (sentimentQueue) {
+        sentimentQueue.add('classify' as string & {}, { responseId: response.id, text: body }).catch((err) =>
         console.error('[SentimentQueue] failed to enqueue job:', err)
-      );
+        );
+      } else {
+        console.warn('[SentimentQueue] queue not available — skipping sentiment classification');
+      }
 
       // Notify student that new response was posted
       const respondingUser = await prisma.user.findUnique({

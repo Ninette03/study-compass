@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { cacheGet, cacheSet } from '../lib/redis';
+import { emailService } from '../services/EmailService';
 
 const router = Router();
 
@@ -124,6 +125,18 @@ router.get('/tags', async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+});
+
+router.get('/test-email', async (req, res, next) => {
+  try {
+    await emailService.sendVerificationEmail(
+      'your_personal_email@gmail.com',
+      'test-token-123'
+    )
+    res.json({ success: true, message: 'Test email sent' })
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message })
   }
 });
 

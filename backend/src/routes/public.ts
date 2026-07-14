@@ -128,18 +128,6 @@ router.get('/tags', async (req, res, next) => {
   }
 });
 
-router.get('/test-email', async (req, res, next) => {
-  try {
-    await emailService.sendVerificationEmail(
-      'your_personal_email@gmail.com',
-      'test-token-123'
-    )
-    res.json({ success: true, message: 'Test email sent' })
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message })
-  }
-});
-
 export default router;
 
 

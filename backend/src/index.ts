@@ -24,8 +24,12 @@ const app: Express = express();
 app.set('trust proxy', 1);
 
 // CORS — must come before all other middleware so OPTIONS preflight is handled first.
-// withCredentials is not used (auth via Authorization header), so wildcard origin is safe.
-app.use(cors({ origin: '*', methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization'] }));
+app.use(cors({
+  origin: process.env.FRONTEND_URL,
+  methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+}));
 
 // Rate limiters
 const globalLimiter = rateLimit({

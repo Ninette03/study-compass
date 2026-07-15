@@ -35,6 +35,9 @@ export class SentimentClassifier {
         timeout: 60000,
       }
     );
+    if (!Array.isArray(response.data) || !Array.isArray(response.data[0])) {
+      throw new Error(`Unexpected HuggingFace response: ${JSON.stringify(response.data)}`);
+    }
 
     const results = response.data[0];
     const bestResult = results.reduce((prev: any, current: any) =>

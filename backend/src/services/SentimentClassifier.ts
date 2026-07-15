@@ -29,10 +29,10 @@ export class SentimentClassifier {
 
     const response = await axios.post(
       this.modelUrl,
-      { inputs: text },
+      { inputs: text, options: { wait_for_model: true } },
       {
         headers: { Authorization: `Bearer ${this.apiKey}` },
-        timeout: 30000,
+        timeout: 60000,
       }
     );
 

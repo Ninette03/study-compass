@@ -48,9 +48,9 @@ export class SentimentClassifier {
       'LABEL_0': 'NEGATIVE',
       'LABEL_1': 'NEUTRAL',
       'LABEL_2': 'POSITIVE',
-      'positive': 'POSITIVE',
-      'negative': 'NEGATIVE',
-      'neutral': 'NEUTRAL',
+      'POSITIVE': 'POSITIVE',
+      'NEGATIVE': 'NEGATIVE',
+      'NEUTRAL': 'NEUTRAL',
     };
 
     const rawLabel = bestResult.label.toUpperCase();

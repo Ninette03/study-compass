@@ -5,16 +5,30 @@ class EmailService {
   private transporter: Transporter;
 
   constructor() {
-    this.transporter = nodemailer.createTransport({
-      host: config.email.smtp.host,
-      port: config.email.smtp.port,
-      secure: config.email.smtp.port === 465,
-      auth: {
-        user: config.email.smtp.user,
-        pass: config.email.smtp.password,
-      },
-    });
-  }
+  this.transporter = nodemailer.createTransport({
+    host: config.email.smtp.host,
+    port: config.email.smtp.port,
+    secure: config.email.smtp.port === 465,
+    auth: {
+      user: config.email.smtp.user,
+      pass: config.email.smtp.password,
+    },
+    logger: true,
+    debug: true,
+  });
+
+  console.log({
+    host: config.email.smtp.host,
+    port: config.email.smtp.port,
+    secure: config.email.smtp.port === 465,
+    user: config.email.smtp.user,
+    passwordSet: !!config.email.smtp.password,
+  });
+
+  this.transporter.verify()
+    .then(() => console.log("SMTP verified"))
+    .catch((err) => console.error("SMTP verify failed:", err));
+}
 
   private get from() {
     return `"PeerGuide" <${config.email.smtp.user}>`;

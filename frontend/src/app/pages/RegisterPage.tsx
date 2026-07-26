@@ -237,7 +237,7 @@ export default function RegisterPage() {
               <label className="flex items-start gap-2 cursor-pointer">
                 <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="mt-0.5" />
                 <span className="text-[13px]" style={{ color: '#5F5E5A' }}>
-                  I agree to the <Link to="/" className="underline" style={{ color: '#2C2C6E' }}>Terms of Service</Link> and <Link to="/" className="underline" style={{ color: '#2C2C6E' }}>Privacy Policy</Link>
+                  I agree to the <Link to="/terms-of-service" className="underline" style={{ color: '#2C2C6E' }}>Terms of Service</Link> and <Link to="/privacy-policy" className="underline" style={{ color: '#2C2C6E' }}>Privacy Policy</Link>
                 </span>
               </label>
             </div>

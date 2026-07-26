@@ -193,8 +193,13 @@ export default function LandingPage() {
             <span className="text-[13px] font-medium" style={{ color: '#2C2C6E' }}>PeerGuide</span>
           </div>
           <div className="flex gap-5">
-            {['About', 'Privacy', 'Terms', 'Contact'].map(link => (
-              <Link key={link} to="/" className="text-[12px] hover:underline" style={{ color: '#5F5E5A' }}>{link}</Link>
+            {[
+              { label: 'About', to: '/' },
+              { label: 'Privacy', to: '/privacy-policy' },
+              { label: 'Terms', to: '/terms-of-service' },
+              { label: 'Contact', to: '/' },
+            ].map(link => (
+              <Link key={link.label} to={link.to} className="text-[12px] hover:underline" style={{ color: '#5F5E5A' }}>{link.label}</Link>
             ))}
           </div>
           <p className="text-[12px]" style={{ color: '#888780' }}>© 2026 PeerGuide. All rights reserved.</p>

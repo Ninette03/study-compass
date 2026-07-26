@@ -18,6 +18,8 @@ import ConversationPage from './pages/ConversationPage';
 import InstitutionsListPage from './pages/InstitutionsListPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ForbiddenPage from './pages/ForbiddenPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import TermsOfServicePage from './pages/TermsOfServicePage.tsx';
 
 export const router = createBrowserRouter([
   {
@@ -40,6 +42,8 @@ export const router = createBrowserRouter([
       { path: 'notifications', Component: NotificationsPage },
       { path: 'messages', Component: MessagesPage },
       { path: 'messages/:id', Component: ConversationPage },
+      { path: 'privacy-policy', Component: PrivacyPolicyPage },
+      { path: 'terms-of-service', Component: TermsOfServicePage },
       { path: '403', Component: ForbiddenPage },
       { path: '*', Component: NotFoundPage },
     ],

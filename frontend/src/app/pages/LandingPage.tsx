@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { Search, ShieldCheck, ArrowRight, Star, Zap, CheckCircle } from 'lucide-react';
+import { Search, ShieldCheck, ArrowRight, Star, Zap, CheckCircle, Building2 } from 'lucide-react';
 import { TagPill } from '../components/shared/TagPill (1).tsx';
 import { SentimentSummaryLabel } from '../components/shared/SentimentBadge';
 import { AvatarCircle } from '../components/shared/AvatarCircle (1).tsx';
-import { questionApi } from '../api';
+import { questionApi, publicApi } from '../api';
 import { useApp } from '../context/AppContext.tsx';
 
 const siteStats = { verifiedAdvisors: 1200, institutions: 80, questionsAnswered: 4500, responseRate: 91 };
@@ -23,9 +23,11 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [institutions, setInstitutions] = useState<Array<{ id: string; name: string; country: string }>>([]);
 
   useEffect(() => {
     questionApi.getQuestions({ take: 5 }).then(res => setQuestions(res.data.data.questions ?? [])).catch(() => {});
+    publicApi.getInstitutions({ take: 6 }).then(res => setInstitutions(res.data.data.institutions ?? [])).catch(() => {});
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -149,36 +151,65 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Recent questions feed */}
+      {/* Recent questions + institutions */}
       <section className="py-16 px-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <h2 style={{ color: '#1A1A1A', fontSize: '18px', fontWeight: 500 }}>Recent questions</h2>
-            <Link to="/questions" className="flex items-center gap-1 text-[13px] hover:underline" style={{ color: '#2C2C6E' }}>
-              Browse all questions <ArrowRight size={13} />
-            </Link>
-          </div>
-          <div className="space-y-3">
-            {questions.slice(0, 5).map(q => (
-              <Link
-                key={q.id}
-                to={`/questions/${q.id}`}
-                className="flex items-start gap-3 p-4 bg-white rounded-lg border hover:border-[#2C2C6E]/30 transition-colors group"
-                style={{ borderColor: '#DEDEDE' }}
-              >
-                <AvatarCircle name={q.user?.fullName ?? ''} size="sm" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-[14px] font-medium group-hover:text-[#2C2C6E] transition-colors truncate" style={{ color: '#1A1A1A' }}>
-                    {q.title}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                    {q.institution && <TagPill label={q.institution.name} size="default" />}
-                    {q.tags.slice(0, 2).map(t => <TagPill key={t.name} label={t.name} />)}
-                    <span className="text-[12px]" style={{ color: '#888780' }}>{q.responses?.length ?? 0} responses</span>
-                  </div>
-                </div>
+        <div className="max-w-4xl mx-auto space-y-10">
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <h2 style={{ color: '#1A1A1A', fontSize: '18px', fontWeight: 500 }}>Recent questions</h2>
+              <Link to="/questions" className="flex items-center gap-1 text-[13px] hover:underline" style={{ color: '#2C2C6E' }}>
+                Browse all questions <ArrowRight size={13} />
               </Link>
-            ))}
+            </div>
+            <div className="space-y-3">
+              {questions.slice(0, 5).map(q => (
+                <Link
+                  key={q.id}
+                  to={`/questions/${q.id}`}
+                  className="flex items-start gap-3 p-4 bg-white rounded-lg border hover:border-[#2C2C6E]/30 transition-colors group"
+                  style={{ borderColor: '#DEDEDE' }}
+                >
+                  <AvatarCircle name={q.user?.fullName ?? ''} size="sm" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] font-medium group-hover:text-[#2C2C6E] transition-colors truncate" style={{ color: '#1A1A1A' }}>
+                      {q.title}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                      {q.institution && <TagPill label={q.institution.name} size="default" />}
+                      {q.tags.slice(0, 2).map(t => <TagPill key={t.name} label={t.name} />)}
+                      <span className="text-[12px]" style={{ color: '#888780' }}>{q.responses?.length ?? 0} responses</span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <h2 style={{ color: '#1A1A1A', fontSize: '18px', fontWeight: 500 }}>Popular institutions</h2>
+              <Link to="/institutions" className="flex items-center gap-1 text-[13px] hover:underline" style={{ color: '#2C2C6E' }}>
+                View all institutions <ArrowRight size={13} />
+              </Link>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {institutions.map(inst => (
+                <Link
+                  key={inst.id}
+                  to={`/institutions/${inst.id}`}
+                  className="flex items-start gap-3 rounded-lg border bg-white p-4 hover:border-[#2C2C6E]/30 transition-colors"
+                  style={{ borderColor: '#DEDEDE' }}
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: '#EEEDFE' }}>
+                    <Building2 size={16} style={{ color: '#2C2C6E' }} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-medium truncate" style={{ color: '#1A1A1A' }}>{inst.name}</p>
+                    <p className="text-[12px]" style={{ color: '#888780' }}>{inst.country}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </section>

@@ -135,6 +135,62 @@ export class QAController {
   }
 
   /**
+   * Get ranked responses for a question with composite scoring
+   */
+  async getResponses(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const isAdmin = req.user?.role === 'ADMIN';
+      const currentYear = new Date().getFullYear();
+
+      const responses = await prisma.response.findMany({
+        where: {
+          questionId: id,
+          ...(isAdmin ? {} : { isHidden: false }),
+        },
+        include: {
+          user: {
+            include: {
+              advisorProfile: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      const visibleResponses = isAdmin ? responses : responses.filter((response: any) => !response.isHidden);
+
+      const rankedResponses = visibleResponses
+        .map((response: any) => {
+          const advisorProfile = response.user?.advisorProfile;
+          const yearAttended = advisorProfile?.yearAttended ?? null;
+          const credibilityScore = Number(advisorProfile?.credibilityScore ?? 0);
+          const upvoteScore = Math.log1p(response.upvoteCount ?? 0) * 2;
+          const sentimentBonus = response.sentiment === 'POSITIVE' ? 1 : 0;
+
+          const recencyScore = yearAttended == null
+            ? 10
+            : Math.max(0, 10 - (currentYear - yearAttended));
+
+          const compositeScore = recencyScore + credibilityScore + upvoteScore + sentimentBonus;
+
+          return {
+            ...response,
+            compositeScore,
+          };
+        })
+        .sort((a: any, b: any) => b.compositeScore - a.compositeScore);
+
+      res.status(200).json({
+        success: true,
+        data: rankedResponses,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Get a single question with all responses
    */
   async getQuestion(req: Request, res: Response, next: NextFunction): Promise<void> {

@@ -31,6 +31,7 @@ const mockPrisma = {
   response: {
     create: jest.fn(),
     findUnique: jest.fn(),
+    findMany: jest.fn(),
     update: jest.fn(),
   },
   responseUpvote: {
@@ -315,6 +316,71 @@ describe('Integration Tests — Q&A Flow', () => {
         .set('Authorization', `Bearer ${studentToken}`);
 
       expect(res.status).toBe(404);
+    });
+
+  });
+
+  // ─── Ranked response retrieval ──────────────────────────────────────────
+
+  describe('TC-INT-13 to TC-INT-14: Ranked response retrieval', () => {
+
+    test('TC-INT-13: GET /questions/:id/responses ranks responses by composite score and hides hidden responses for non-admins', async () => {
+      mockPrisma.response.findMany.mockResolvedValueOnce([
+        {
+          id: 'resp-1',
+          questionId: 'q-1',
+          userId: 'advisor-1',
+          body: 'Older response',
+          sentiment: 'PENDING',
+          upvoteCount: 1,
+          isHidden: false,
+          createdAt: new Date('2024-01-01T00:00:00.000Z'),
+          user: {
+            id: 'advisor-1',
+            fullName: 'Bob',
+            advisorProfile: { yearAttended: 2017, credibilityScore: 1 },
+          },
+        },
+        {
+          id: 'resp-2',
+          questionId: 'q-1',
+          userId: 'advisor-2',
+          body: 'More recent and credible response',
+          sentiment: 'POSITIVE',
+          upvoteCount: 4,
+          isHidden: false,
+          createdAt: new Date('2024-02-01T00:00:00.000Z'),
+          user: {
+            id: 'advisor-2',
+            fullName: 'Carol',
+            advisorProfile: { yearAttended: 2022, credibilityScore: 3 },
+          },
+        },
+        {
+          id: 'resp-3',
+          questionId: 'q-1',
+          userId: 'advisor-3',
+          body: 'Hidden response',
+          sentiment: 'NEGATIVE',
+          upvoteCount: 0,
+          isHidden: true,
+          createdAt: new Date('2024-03-01T00:00:00.000Z'),
+          user: {
+            id: 'advisor-3',
+            fullName: 'Dave',
+            advisorProfile: { yearAttended: 2010, credibilityScore: 0 },
+          },
+        },
+      ]);
+
+      const res = await request(app)
+        .get('/questions/q-1/responses')
+        .set('Authorization', `Bearer ${studentToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data[0].id).toBe('resp-2');
+      expect(res.body.data[0].compositeScore).toBeGreaterThan(res.body.data[1].compositeScore);
+      expect(res.body.data.some((item: any) => item.id === 'resp-3')).toBe(false);
     });
 
   });

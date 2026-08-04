@@ -17,6 +17,12 @@ router.post('/', authenticate, (req, res, next) => qaController.createQuestion(r
 router.get('/', optionalAuth, (req, res, next) => qaController.getQuestions(req, res, next));
 
 /**
+ * GET /questions/:id/responses
+ * Get ranked responses for a question
+ */
+router.get('/:id/responses', optionalAuth, (req, res, next) => qaController.getResponses(req, res, next));
+
+/**
  * GET /questions/:id
  * Get a single question with responses
  */

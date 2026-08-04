@@ -45,7 +45,10 @@ const mockPrisma = {
     count: jest.fn(),
     findMany: jest.fn(),
   },
-  advisorProfile: { findMany: jest.fn() },
+  advisorProfile: {
+    findMany: jest.fn(),
+    update: jest.fn(),
+  },
   notification: {
     createMany: jest.fn(),
     create: jest.fn(),

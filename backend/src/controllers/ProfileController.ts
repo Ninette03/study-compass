@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '../lib/prisma';
 import { notificationService } from '../services/NotificationService';
+import { credibilityService } from '../services/CredibilityService';
 import { ValidationError, NotFoundError, AuthorizationError } from '../utils/errors';
 
 export class ProfileController {
@@ -228,6 +229,8 @@ export class ProfileController {
           verificationToken: null,
         },
       });
+
+      await credibilityService.updateCredibilityScore(advisorUserId);
 
       // Notify advisor
       await notificationService.notifyVerificationStatus(advisorUserId, true);

@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '../lib/prisma';
 import { sentimentQueue } from '../lib/sentimentQueue';
 import { notificationService } from '../services/NotificationService';
+import { credibilityService } from '../services/CredibilityService';
 import { ValidationError, NotFoundError, AuthorizationError } from '../utils/errors';
 
 export class QAController {
@@ -339,6 +340,8 @@ export class QAController {
         },
       }) as any;
 
+      await credibilityService.updateCredibilityScore(req.user.userId);
+
       res.status(201).json({
         success: true,
         data: response,
@@ -398,6 +401,7 @@ export class QAController {
       if (upvoted) {
         // Notify outside the transaction — non-critical side effect
         notificationService.notifyResponseUpvoted(responseId, response.userId).catch(() => {});
+        await credibilityService.updateCredibilityScore(response.userId);
       }
 
       res.status(200).json({

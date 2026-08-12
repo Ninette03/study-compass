@@ -47,6 +47,7 @@ const mockPrisma = {
   },
   advisorProfile: {
     findMany: jest.fn(),
+    findUnique: jest.fn(),
     update: jest.fn(),
   },
   notification: {

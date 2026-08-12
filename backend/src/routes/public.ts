@@ -50,6 +50,48 @@ router.get('/institutions', async (req, res, next) => {
  * GET /institutions/:id
  * Public single institution with recent questions and verified advisors
  */
+router.get('/institutions/:id/sentiment-overview', async (req, res, next) => {
+  try {
+    const institutionId = req.params.id;
+
+    const [userGenerated, scraped] = await Promise.all([
+      prisma.response.groupBy({
+        by: ['sentiment'],
+        where: { question: { institutionId } },
+        _count: { sentiment: true },
+      }),
+      prisma.scrapedSentiment.groupBy({
+        by: ['sentiment'],
+        where: { institutionId },
+        _count: { sentiment: true },
+      }),
+    ]);
+
+    const toCounts = (items: Array<{ sentiment: string; _count: { sentiment: number } }>) => ({
+      positive: items.find((item) => item.sentiment === 'POSITIVE')?._count.sentiment ?? 0,
+      neutral: items.find((item) => item.sentiment === 'NEUTRAL')?._count.sentiment ?? 0,
+      negative: items.find((item) => item.sentiment === 'NEGATIVE')?._count.sentiment ?? 0,
+    });
+
+    const combined = {
+      positive: toCounts(userGenerated).positive + toCounts(scraped).positive,
+      neutral: toCounts(userGenerated).neutral + toCounts(scraped).neutral,
+      negative: toCounts(userGenerated).negative + toCounts(scraped).negative,
+    };
+
+    res.status(200).json({
+      success: true,
+      data: {
+        userGenerated: toCounts(userGenerated),
+        scraped: toCounts(scraped),
+        combined,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/institutions/:id', async (req, res, next) => {
   try {
     const cacheKey = `institutions:page:${req.params.id}`;

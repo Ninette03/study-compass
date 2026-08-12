@@ -39,9 +39,6 @@ export class AuthService {
     const userId = uuidv4();
     const verificationToken = uuidv4();
 
-    // Wrap user + profile creation in a single transaction.
-    // The unique constraint on `email` prevents duplicate registrations
-    // even under concurrent requests — no separate existence check needed.
     let user: User;
     try {
       user = await prisma.$transaction(async (tx) => {

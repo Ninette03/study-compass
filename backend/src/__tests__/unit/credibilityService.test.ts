@@ -7,8 +7,8 @@ jest.mock('../../lib/prisma', () => ({
       findUnique: jest.fn(),
       update: jest.fn(),
     },
-    user: {
-      findUnique: jest.fn(),
+    response: {
+      findMany: jest.fn(),
     },
   },
 }));
@@ -21,11 +21,8 @@ describe('CredibilityService', () => {
   });
 
   it('recalculates and updates an advisor credibility score using verification, upvotes, and response volume', async () => {
-    (prisma.user.findUnique as jest.Mock).mockResolvedValueOnce({
-      id: 'advisor-1',
-      isVerified: true,
-      responses: [{ upvoteCount: 5 }, { upvoteCount: 7 }],
-    });
+    (prisma.advisorProfile.findUnique as jest.Mock).mockResolvedValueOnce({ isVerified: true });
+    (prisma.response.findMany as jest.Mock).mockResolvedValueOnce([{ upvoteCount: 5 }, { upvoteCount: 7 }]);
     (prisma.advisorProfile.update as jest.Mock).mockResolvedValueOnce({
       userId: 'advisor-1',
       credibilityScore: 13.45,

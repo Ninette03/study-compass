@@ -7,6 +7,8 @@ import { config } from './config/env.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { redis } from './lib/redis.js';
 import { createSentimentWorker } from './lib/sentimentQueue.js';
+import { createScrapingWorker } from './lib/scrapingQueue.js';
+import { startScrapingScheduler } from './lib/scheduler.js';
 
 import authRoutes from './routes/auth.js';
 import questionsRoutes from './routes/questions.js';
@@ -84,12 +86,22 @@ const PORT = config.server.port;
 // Start background worker for sentiment classification
 // Start background worker for sentiment classification
 let sentimentWorker: any = null;
+let scrapingWorker: any = null;
 try {
   sentimentWorker = createSentimentWorker();
   console.log('[SentimentWorker] started successfully');
 } catch (err: any) {
   console.error('[SentimentWorker] failed to start — sentiment classification disabled:', err.message);
 }
+
+try {
+  scrapingWorker = createScrapingWorker();
+  console.log('[ScrapingWorker] started successfully');
+} catch (err: any) {
+  console.error('[ScrapingWorker] failed to start — scraping disabled:', err.message);
+}
+
+startScrapingScheduler();
 
 const server = app.listen(PORT, () => {
   console.log(`
@@ -104,6 +116,9 @@ async function shutdown(signal: string) {
   server.close(async () => {
     if (sentimentWorker) {
       await sentimentWorker.close();
+    }
+    if (scrapingWorker) {
+      await scrapingWorker.close();
     }
     await redis.quit();
     console.log('Server closed');

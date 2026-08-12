@@ -101,6 +101,8 @@ export const publicApi = {
     api.get('/institutions', { params }),
   getInstitution: (id: string) =>
     api.get(`/institutions/${id}`),
+  getInstitutionSentimentOverview: (id: string) =>
+    api.get(`/institutions/${id}/sentiment-overview`),
   getTags: (params?: { skip?: number; take?: number }) =>
     api.get('/tags', { params }),
 };

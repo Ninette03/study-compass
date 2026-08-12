@@ -7,6 +7,7 @@ import { AvatarCircle } from '../components/shared/AvatarCircle (1).tsx';
 import { VerifiedBadge } from '../components/shared/VerifiedBadge';
 import { publicApi } from '../api';
 import { useApp } from '../context/AppContext';
+import { SentimentOverview } from '../components/shared/SentimentOverview';
 
 interface InstitutionData {
   id: string;
@@ -96,6 +97,8 @@ export default function InstitutionPage() {
           </Link>
         </div>
       </div>
+
+      <SentimentOverview institutionId={institution.id} institutionName={institution.name} />
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
